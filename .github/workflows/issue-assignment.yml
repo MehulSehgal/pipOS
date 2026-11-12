@@ -1,0 +1,123 @@
+name: Issue Self Assignment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  self-assign:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Assign or unassign contributor
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const commenter = context.payload.comment.user.login;
+            const body = context.payload.comment.body.trim();
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = issue.number;
+
+            // Ignore bot comments
+            if (context.payload.comment.user.type === "Bot") {
+              return;
+            }
+
+            // Only accept exact commands
+            if (!["/assign", "/unassign"].includes(body)) {
+              return;
+            }
+
+            // Avoid assigning closed issues
+            if (issue.state !== "open") {
+              return;
+            }
+
+            const assignees = issue.assignees.map(user => user.login);
+
+            if (body === "/assign") {
+              if (assignees.includes(commenter)) {
+                core.info(`${commenter} is already assigned.`);
+                return;
+              }
+
+              // Allow one contributor per issue
+              if (assignees.length > 0) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: "⚠️ This issue is already assigned. Please choose another issue."
+                });
+                return;
+              }
+
+              try {
+                const result = await github.rest.issues.addAssignees({
+                  owner,
+                  repo,
+                  issue_number,
+                  assignees: [commenter]
+                });
+
+                // Confirm GitHub actually assigned the user
+                const assigned = result.data.assignees.some(
+                  user => user.login === commenter
+                );
+
+                if (!assigned) {
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number,
+                    body: `⚠️ @${commenter}, GitHub could not assign this issue to you. Please ask a maintainer to assign it.`
+                  });
+                  return;
+                }
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: `✅ Assigned to @${commenter}. Happy contributing!`
+                });
+
+              } catch (error) {
+                core.warning(`Assignment failed: ${error.message}`);
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: `⚠️ @${commenter}, automatic assignment failed. Please ask a maintainer for help.`
+                });
+              }
+            }
+
+            if (body === "/unassign") {
+              if (!assignees.includes(commenter)) {
+                core.info(`${commenter} is not assigned.`);
+                return;
+              }
+
+              await github.rest.issues.removeAssignees({
+                owner,
+                repo,
+                issue_number,
+                assignees: [commenter]
+              });
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: `🔓 @${commenter} has unassigned themselves. This issue is available again.`
+              });
+            }
