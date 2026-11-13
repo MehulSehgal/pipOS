@@ -128,6 +128,7 @@ code { font-size: 0.9em; background: var(--blush); padding: 0.05rem 0.3rem; bord
 .start svg { width: 20px; height: 20px; fill: #ffe9ae; }
 .task-nav { display: flex; flex: 1; justify-content: center; gap: 0.25rem; }
 .task-nav a {
+  display: inline-flex; align-items: center; min-height: 44px;
   padding: 0.4rem 0.85rem; border: 3px solid transparent; border-radius: 999px;
   color: var(--ink); text-decoration: none; font: 500 0.95rem var(--f-ui);
 }
@@ -521,6 +522,7 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
   .tb-btn { min-width: 44px; padding: 0.3rem; }
   .task-nav { gap: 0; }
   .task-nav a { padding: 0.35rem 0.5rem; font-size: 0.88rem; }
+  .win:not(.hero) { content-visibility: auto; contain-intrinsic-size: auto 320px; }
   main { padding: 20px 12px 96px; }
   section[id] { scroll-margin-top: 12px; }
   .win { box-shadow: 5px 5px 0 var(--shadow); }

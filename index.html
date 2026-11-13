@@ -14,7 +14,8 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Fredoka:wght@400;500;600&display=swap">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Fredoka:wght@400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Fredoka:wght@400;500;600&display=swap"></noscript>
   <link rel="stylesheet" href="css/style.css">
   <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -200,7 +201,7 @@
           <div class="win-bar"><span class="win-title" id="labTitle">lullaby-lab.exe</span></div>
           <div class="win-body">
             <div class="proj-head">
-              <div class="thumb" hidden><img data-optional data-src="assets/pip_lullaby_box.png" alt="" width="84" height="84"></div>
+              <div class="thumb" hidden><img loading="lazy" decoding="async" data-optional data-src="assets/pip_lullaby_box.png" alt="" width="84" height="84"></div>
               <p>A music box Pip wound the wrong way. Press a key, or use 1 to 8 on your keyboard.</p>
             </div>
             <div class="mb-stage" id="mbStage" aria-hidden="true"></div>
@@ -217,7 +218,7 @@
           <div class="win-bar"><span class="win-title" id="lightsTitle">nightlight-collection.exe</span></div>
           <div class="win-body">
             <div class="proj-head">
-              <div class="thumb" hidden><img data-optional data-src="assets/pip_dream_lantern.png" alt="" width="84" height="84"></div>
+              <div class="thumb" hidden><img loading="lazy" decoding="async" data-optional data-src="assets/pip_dream_lantern.png" alt="" width="84" height="84"></div>
               <p>Pick a lantern, then sweep it across the dark nursery. Five small dreams are hiding in there.</p>
             </div>
             <div class="darkroom" id="darkroom" tabindex="0" aria-label="Dark nursery. Move your pointer, or use the arrow keys, to shine the lantern.">
