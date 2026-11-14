@@ -294,14 +294,14 @@
 
     <!-- STORY -->
     <section id="story" aria-labelledby="storyH">
-      <h2 class="sr-only" id="storyH">Pip's story</h2>
-      <div class="story-track" id="storyTrack" style="--n:4">
-        <div class="win story-stage">
-          <div class="win-bar">
-            <span class="win-title">bedtime.exe</span>
-            <span class="story-prog" aria-hidden="true"><i id="storyBar"></i></span>
-          </div>
-          <div class="scenes">
+      <h2 class="sr-only" id="storyH">Pip's bedtime storybook</h2>
+      <div class="win story-stage" id="storyTrack">
+        <div class="win-bar">
+          <span class="win-title">bedtime-storybook.exe</span>
+          <span class="story-count" id="storyCount" aria-live="polite">Page 1 of 6</span>
+        </div>
+        <div class="storybook" id="storybook" tabindex="0" aria-label="Pip's bedtime storybook. Use the arrow keys or buttons to turn pages.">
+          <div class="scenes" aria-live="polite">
             <article class="scene is-active" aria-labelledby="sc1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
@@ -357,12 +357,45 @@
               </div>
               <div class="scene-text"><h3 id="sc4">The night shift</h3><p>Now Pip is a Junior Dream Engineer: lullabies in the lab, nightlights on the shelf, dreams delivered by cloud before sunrise. Tonight's route has seven stops. Leave your window open a crack.</p></div>
             </article>
+            <article class="scene" aria-labelledby="sc5">
+              <div class="scene-art">
+                <svg viewBox="0 0 320 200" aria-hidden="true">
+                  <rect class="s-sky" width="320" height="200" rx="10"/>
+                  <circle class="s-moon" cx="255" cy="44" r="25"/>
+                  <path class="s-cloud" d="M58 148q-9-24 18-28 8-29 37-13 22-25 43 2 28-8 32 20 19 7 3 19H76q-17 0-18 0Z"/>
+                  <path class="s-ladder" d="M146 166V78m30 88V78m-30 20h30m-30 23h30m-30 23h30"/>
+                  <circle class="s-skull" cx="160" cy="62" r="16"/><circle class="s-eye" cx="154" cy="62" r="4"/><circle class="s-eye" cx="166" cy="62" r="4"/>
+                  <path class="s-cap" d="M144 56c3-22 26-28 44-17-20 1-27 8-29 16Z"/>
+                </svg>
+              </div>
+              <div class="scene-text"><h3 id="sc5">A pocket of stars</h3><p>One evening, a star fell into Pip's pocket. Pip climbed the cloud ladder, returned it to the sky, and kept one tiny sparkle for the nursery window.</p></div>
+            </article>
+            <article class="scene" aria-labelledby="sc6">
+              <div class="scene-art">
+                <svg viewBox="0 0 320 200" aria-hidden="true">
+                  <rect class="s-sky" width="320" height="200" rx="10"/>
+                  <circle class="s-moon" cx="256" cy="45" r="25"/>
+                  <rect class="s-bed" x="72" y="112" width="174" height="50" rx="12"/>
+                  <path class="s-blanket" d="M80 118q64-26 158 0v42H80Z"/>
+                  <circle class="s-skull" cx="160" cy="112" r="19"/><circle class="s-eye" cx="153" cy="112" r="4"/><circle class="s-eye" cx="167" cy="112" r="4"/>
+                  <path class="s-cap" d="M142 106c4-26 30-32 51-19-22 1-31 10-34 20Z"/>
+                  <use class="s-star" href="#star" x="46" y="48" width="16" height="16"/><use class="s-star" href="#star" x="214" y="76" width="12" height="12"/>
+                </svg>
+              </div>
+              <div class="scene-text"><h3 id="sc6">Goodnight, Pip</h3><p>When the last window glows, Pip curls up beneath the stars. The nursery is quiet, the dreams are safe, and tomorrow has room for another little wonder.</p></div>
+            </article>
           </div>
-          <div class="story-dots" role="group" aria-label="Jump to a scene">
-            <button type="button" class="story-dot is-active" aria-label="Scene 1, The hiccup"></button>
-            <button type="button" class="story-dot" aria-label="Scene 2, No silence allowed"></button>
-            <button type="button" class="story-dot" aria-label="Scene 3, The first lullaby"></button>
-            <button type="button" class="story-dot" aria-label="Scene 4, The night shift"></button>
+          <div class="story-controls">
+            <button class="btn" id="storyPrev" type="button" aria-label="Previous page">← Previous</button>
+            <div class="story-dots" role="group" aria-label="Choose a story page">
+              <button type="button" class="story-dot is-active" aria-label="Page 1, The hiccup"></button>
+              <button type="button" class="story-dot" aria-label="Page 2, No silence allowed"></button>
+              <button type="button" class="story-dot" aria-label="Page 3, The first lullaby"></button>
+              <button type="button" class="story-dot" aria-label="Page 4, The night shift"></button>
+              <button type="button" class="story-dot" aria-label="Page 5, A pocket of stars"></button>
+              <button type="button" class="story-dot" aria-label="Page 6, Goodnight, Pip"></button>
+            </div>
+            <button class="btn btn-primary" id="storyNext" type="button" aria-label="Next page">Next →</button>
           </div>
         </div>
       </div>
@@ -440,10 +473,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="js/util.js" defer></script>
+  <script src="js/i18n.js" defer></script>
   <script src="js/audio.js" defer></script>
   <script src="js/fx.js" defer></script>
   <script src="js/pip.js" defer></script>
   <script src="js/toys.js" defer></script>
-  <script src="js/main.js" defer></script>
+  <script src="js/main.js?v=storybook" defer></script>
 </body>
 </html>
