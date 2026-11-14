@@ -552,3 +552,6 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
   .scene, .odo-strip, .toast { transition-duration: 0.01s; }
   .sparkle { display: none; }
 }
+
+.language-btn .language-name,
+.language-btn .language-name [data-language-label] { display: inline !important; }
