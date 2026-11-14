@@ -468,7 +468,26 @@
     fromScroll();
   }
 
+  /* =====================================================================
+     5. PIP'S GROWTH CHART
+     ===================================================================== */
+  function initGrowthChart() {
+    var chart = $('#growthChart');
+    if (!chart) return;
+    var steps = $$('.growth-step', chart);
+
+    steps.forEach(function (step) {
+      var progress = clamp(parseFloat(step.getAttribute('data-progress')) || 0, 0, 100);
+      var fill = $('.growth-fill', step);
+      if (fill) fill.style.setProperty('--progress', progress);
+    });
+
+    PIP.watchVisible(chart, function (visible) {
+      if (visible) chart.classList.add('is-visible');
+    }, '0px');
+  }
+
   PIP.toys = {
-    init: function () { initLab(); initLights(); initBlocks(); initRoute(); }
+    init: function () { initLab(); initLights(); initBlocks(); initRoute(); initGrowthChart(); }
   };
 })();
