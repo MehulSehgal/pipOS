@@ -22,7 +22,7 @@ node --test
 5. Paste/adapt `SUBMISSION.md` into the form.
 
 ## What is in it
-- Tier 1: eyes follow cursor/touch, head tilt, blink, day/night mood (Pip falls sleepy), scroll-driven story (4 scenes, <150 words each), fully responsive, hidden Easter egg (tap the gold nightcap star 5 times).
+- Tier 1: eyes follow cursor/touch, head tilt, blink, day/night mood (Pip falls sleepy), interactive six-page bedtime storybook with keyboard and touch navigation, fully responsive, hidden Easter egg (tap the gold nightcap star 5 times).
 - Tier 2: Web Audio music box + endless generative lullaby, flashlight dark room (CSS mask), SVG dream-delivery route synced to scroll, block-stacking mini-game.
 - Side quests: sparkle trail, click sounds + mute switch, odometer counter, wish wall, responsive chaos (taskbar becomes a bottom dock on phones, desktop icons on wide screens).
 - Visitor memory: Pip greets returning visitors by name and visit count (localStorage).

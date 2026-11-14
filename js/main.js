@@ -5,6 +5,8 @@
   var PIP = window.PIP;
   var $ = PIP.$, $$ = PIP.$$, store = PIP.store, clamp = PIP.clamp, reduce = PIP.reduceMotion;
   var audio = PIP.audio;
+  var tr = function (text) { return PIP.i18n ? PIP.i18n.t(text) : text; };
+  var toast = function (text, ms) { PIP.toast(tr(text), ms); };
 
   function safe(name, fn) {
     try { fn(); } catch (e) { if (window.console) console.error('[pip] ' + name + ' failed:', e); }
@@ -94,50 +96,51 @@
     });
   }
 
-  /* ---------- scroll story ---------- */
+  /* ---------- bedtime storybook ---------- */
   function initStory() {
     var track = $('#storyTrack');
     if (!track) return;
-    var stage = $('.story-stage', track), scenes = $$('.scene', track), dots = $$('.story-dot', track), bar = $('#storyBar');
-    var n = scenes.length, cur = 0, ticking = false;
-    if (!stage || !n) return;
-
-    function range() { return Math.max(1, track.offsetHeight - stage.offsetHeight); }
-    function stickyTop() { return parseFloat(window.getComputedStyle(stage).top) || 0; }
+    var book = $('#storybook'), scenes = $$('.scene', track), dots = $$('.story-dot', track);
+    var prev = $('#storyPrev'), next = $('#storyNext'), count = $('#storyCount');
+    var n = scenes.length, cur = -1, startX = 0, startY = 0;
+    if (!book || !n) return;
 
     function setScene(i) {
-      if (i === cur) return;
+      i = (i + n) % n;
+      if (i === cur && scenes[i].classList.contains('is-active')) return;
+      var direction = i > cur || (cur === n - 1 && i === 0) ? 'forward' : 'back';
       cur = i;
+      book.classList.toggle('is-back', direction === 'back');
       scenes.forEach(function (s, k) { s.classList.toggle('is-active', k === i); });
       dots.forEach(function (d, k) {
         d.classList.toggle('is-active', k === i);
         if (k === i) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current');
       });
+      if (count) count.textContent = 'Page ' + (i + 1) + ' of ' + n;
+      if (prev) prev.disabled = i === 0;
+      if (next) next.disabled = i === n - 1;
       if (audio.isOn()) audio.note(audio.SCALE[[0, 2, 3, 5][i % 4]], { dur: 1.2, gain: 0.12 });
     }
-    function update() {
-      ticking = false;
-      var r = track.getBoundingClientRect();
-      var p = clamp((stickyTop() - r.top) / range(), 0, 0.9999);
-      if (bar) bar.style.width = (p * 100).toFixed(1) + '%';
-      setScene(Math.floor(p * n));
-    }
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(update);
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-
-    dots.forEach(function (d, i) {
-      d.addEventListener('click', function () {
-        var top = track.getBoundingClientRect().top + window.pageYOffset - stickyTop();
-        var y = top + ((i + 0.5) / n) * range();
-        window.scrollTo({ top: y, behavior: reduce.matches ? 'auto' : 'smooth' });
-      });
+    function move(step) { setScene(cur + step); }
+    if (prev) prev.addEventListener('click', function () { move(-1); });
+    if (next) next.addEventListener('click', function () { move(1); });
+    dots.forEach(function (d, i) { d.addEventListener('click', function () { setScene(i); }); });
+    book.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      if (e.key === 'Home') { e.preventDefault(); setScene(0); }
+      if (e.key === 'End') { e.preventDefault(); setScene(n - 1); }
     });
-    update();
+    book.addEventListener('touchstart', function (e) {
+      var touch = e.changedTouches[0];
+      startX = touch.clientX; startY = touch.clientY;
+    }, { passive: true });
+    book.addEventListener('touchend', function (e) {
+      var touch = e.changedTouches[0], dx = touch.clientX - startX, dy = touch.clientY - startY;
+      if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return;
+      move(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    setScene(0);
   }
 
   /* ---------- taskbar highlights the section you are in ---------- */
@@ -171,7 +174,7 @@
     ];
     var i = 0;
     t.addEventListener('click', function () {
-      PIP.toast(lines[i++ % lines.length]);
+      toast(lines[i++ % lines.length]);
     });
   }
 
