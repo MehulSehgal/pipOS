@@ -46,15 +46,15 @@
       var on = state === 'on';
       btn.classList.toggle('is-off', !on);
       btn.classList.toggle('is-hint', state === '');
-      btn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
-      if (label) label.textContent = on ? 'Sound on' : 'Sound off';
+      btn.setAttribute('aria-label', tr(on ? 'Turn sound off' : 'Turn sound on'));
+      if (label) label.textContent = tr(on ? 'Sound on' : 'Sound off');
     }
     paint(audio.state());
     audio.onChange(paint);
     btn.addEventListener('click', function () { audio.toggle(); });
     if (audio.state() === '') {
       window.setTimeout(function () {
-        if (audio.state() === '') PIP.toast('Psst. Sound is off. Flip the speaker up top for chimes and giggles.', 4600);
+        if (audio.state() === '') toast('Psst. Sound is off. Flip the speaker up top for chimes and giggles.', 4600);
       }, 4500);
     }
   }
