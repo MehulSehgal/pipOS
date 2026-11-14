@@ -18,13 +18,14 @@
       html.setAttribute('data-theme', t);
       store.set('theme', t);
       if (btn) {
-        btn.setAttribute('aria-label', t === 'night' ? 'Switch to day' : 'Switch to night');
+        btn.setAttribute('aria-label', tr(t === 'night' ? 'Switch to day' : 'Switch to night'));
         btn.classList.toggle('is-night', t === 'night');
       }
-      if (label) label.textContent = t === 'night' ? 'Night' : 'Day';
+      if (label) label.textContent = tr(t === 'night' ? 'Night' : 'Day');
       if (meta) meta.setAttribute('content', t === 'night' ? '#1b1430' : '#fff8f1');
       if (PIP.pip) PIP.pip.setMood(t === 'night' ? 'night' : 'day');
     }
+    document.addEventListener('pip-language-change', function () { apply(html.getAttribute('data-theme') || 'day'); });
     var saved = store.get('theme', '');
     var prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
     apply(saved || (prefersDark ? 'night' : 'day'));
