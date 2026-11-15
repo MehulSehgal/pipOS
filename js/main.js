@@ -21,6 +21,7 @@
       store.set('theme', t);
       if (btn) {
         btn.setAttribute('aria-label', tr(t === 'night' ? 'Switch to day' : 'Switch to night'));
+        btn.setAttribute('aria-label', t === 'night' ? 'Night mode, switch to day mode' : 'Day mode, switch to night mode');
         btn.classList.toggle('is-night', t === 'night');
       }
       if (label) label.textContent = tr(t === 'night' ? 'Night' : 'Day');
@@ -51,6 +52,9 @@
       btn.classList.toggle('is-hint', state === '');
       btn.setAttribute('aria-label', tr(on ? 'Turn sound off' : 'Turn sound on'));
       if (label) label.textContent = tr(on ? 'Sound on' : 'Sound off');
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-label', on ? 'Sound on, turn sound off' : 'Sound off, turn sound on');
+      if (label) label.textContent = on ? 'Sound on' : 'Sound off';
     }
     paint(audio.state());
     audio.onChange(paint);
@@ -104,6 +108,73 @@
     var prev = $('#storyPrev'), next = $('#storyNext'), count = $('#storyCount');
     var n = scenes.length, cur = -1, startX = 0, startY = 0;
     if (!book || !n) return;
+  /* ---------- shortcuts cheat sheet (keys.txt) ---------- */
+  function initShortcuts() {
+    var win = $('#shortcuts');
+    if (!win) return;
+    var body = $('.win-body', win);
+
+    function toggleShortcuts(openOnly) {
+      var btn = $('.win-btn', win);
+      var isCurrentlyOpen = body && !body.hidden;
+      var isFocused = win.contains(document.activeElement);
+
+      if (!isCurrentlyOpen) {
+        if (btn) btn.click();
+        else if (body) body.hidden = false;
+        if (win.scrollIntoView) {
+          win.scrollIntoView({ behavior: reduce && reduce.matches ? 'auto' : 'smooth', block: 'nearest' });
+        }
+        if (btn) btn.focus();
+      } else if (openOnly) {
+        if (win.scrollIntoView) {
+          win.scrollIntoView({ behavior: reduce && reduce.matches ? 'auto' : 'smooth', block: 'nearest' });
+        }
+        if (btn) btn.focus();
+      } else if (isFocused) {
+        if (btn) btn.click();
+        else if (body) body.hidden = true;
+      } else {
+        if (win.scrollIntoView) {
+          win.scrollIntoView({ behavior: reduce && reduce.matches ? 'auto' : 'smooth', block: 'nearest' });
+        }
+        if (btn) btn.focus();
+      }
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault();
+        toggleShortcuts(false);
+      } else if (e.key === 'Escape' && body && !body.hidden && win.contains(document.activeElement)) {
+        var btn = $('.win-btn', win);
+        if (btn) btn.click();
+      }
+    });
+
+    var iconLink = $('.desk-icons a[href="#shortcuts"]');
+    if (iconLink) {
+      iconLink.addEventListener('click', function () {
+        toggleShortcuts(true);
+      });
+    }
+  }
+
+  /* ---------- scroll story ---------- */
+  function initStory() {
+    var track = $('#storyTrack');
+    if (!track) return;
+    var stage = $('.story-stage', track), scenes = $$('.scene', track), dots = $$('.story-dot', track), bar = $('#storyBar');
+    var n = scenes.length, cur = -1, ticking = false;
+    if (!stage || !n) return;
+
+    function range() { return Math.max(1, track.offsetHeight - stage.offsetHeight); }
+    function stickyTop() { return parseFloat(window.getComputedStyle(stage).top) || 0; }
 
     function setScene(i) {
       i = (i + n) % n;
@@ -112,6 +183,17 @@
       cur = i;
       book.classList.toggle('is-back', direction === 'back');
       scenes.forEach(function (s, k) { s.classList.toggle('is-active', k === i); });
+      scenes.forEach(function (s, k) {
+        var active = k === i;
+        s.classList.toggle('is-active', active);
+        if (active) {
+          s.removeAttribute('aria-hidden');
+          s.removeAttribute('inert');
+        } else {
+          s.setAttribute('aria-hidden', 'true');
+          s.setAttribute('inert', '');
+        }
+      });
       dots.forEach(function (d, k) {
         d.classList.toggle('is-active', k === i);
         if (k === i) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current');
@@ -130,6 +212,37 @@
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); move(1); }
       if (e.key === 'Home') { e.preventDefault(); setScene(0); }
       if (e.key === 'End') { e.preventDefault(); setScene(n - 1); }
+    function update() {
+      ticking = false;
+      var r = track.getBoundingClientRect();
+      var p = clamp((stickyTop() - r.top) / range(), 0, 0.9999);
+      if (bar) bar.style.width = (p * 100).toFixed(1) + '%';
+      setScene(Math.floor(p * n));
+    }
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    dots.forEach(function (d, i) {
+      d.addEventListener('click', function () {
+        var top = track.getBoundingClientRect().top + window.pageYOffset - stickyTop();
+        var y = top + ((i + 0.5) / n) * range();
+        window.scrollTo({ top: y, behavior: reduce.matches ? 'auto' : 'smooth' });
+      });
+      d.addEventListener('keydown', function (e) {
+        var nextDot = -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextDot = (i + 1) % n;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextDot = (i - 1 + n) % n;
+        if (nextDot >= 0) {
+          e.preventDefault();
+          dots[nextDot].focus();
+          dots[nextDot].click();
+        }
+      });
     });
     book.addEventListener('touchstart', function (e) {
       var touch = e.changedTouches[0];
@@ -178,6 +291,17 @@
     });
   }
 
+  /* ---------- service worker registration ---------- */
+  function initServiceWorker() {
+    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function (err) {
+          if (window.console && window.console.debug) console.debug('[pip] ServiceWorker registration skipped:', err);
+        });
+      });
+    }
+  }
+
   /* ---------- go ---------- */
   safe('images', PIP.optionalImages);
   safe('pip', PIP.pip.init);
@@ -185,9 +309,11 @@
   safe('sound', initSound);
   safe('clock', initClock);
   safe('foldable', initFoldable);
+  safe('shortcuts', initShortcuts);
   safe('fx', PIP.fx.init);
   safe('toys', PIP.toys.init);
   safe('story', initStory);
   safe('navspy', initNavSpy);
   safe('trash', initTrash);
+  safe('sw', initServiceWorker);
 })();
