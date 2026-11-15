@@ -433,14 +433,6 @@
         </div>
         <div class="storybook" id="storybook" tabindex="0" aria-label="Pip's bedtime storybook. Use the arrow keys or buttons to turn pages.">
           <div class="scenes" aria-live="polite">
-      <h2 class="sr-only" id="storyH">Pip's story</h2>
-      <div class="story-track" id="storyTrack" style="--n:4">
-        <div class="win story-stage">
-          <div class="win-bar">
-            <h3 class="win-title">bedtime.exe</h3>
-            <span class="story-prog" aria-hidden="true"><i id="storyBar"></i></span>
-          </div>
-          <div class="scenes">
             <article class="scene is-active" aria-labelledby="sc1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
@@ -535,14 +527,10 @@
               <button type="button" class="story-dot" aria-label="Page 6, Goodnight, Pip"></button>
             </div>
             <button class="btn btn-primary" id="storyNext" type="button" aria-label="Next page">Next →</button>
-          <div class="story-dots" role="group" aria-label="Jump to a scene">
-            <button type="button" class="story-dot is-active" aria-label="Scene 1, The hiccup" aria-current="true"></button>
-            <button type="button" class="story-dot" aria-label="Scene 2, No silence allowed"></button>
-            <button type="button" class="story-dot" aria-label="Scene 3, The first lullaby"></button>
-            <button type="button" class="story-dot" aria-label="Scene 4, The night shift"></button>
           </div>
         </div>
       </div>
+    </div>
     </section>
 
     <!-- WALL -->
@@ -617,7 +605,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="js/util.js" defer></script>
-  <script src="js/i18n.js" defer></script>
   <script src="js/audio.js" defer></script>
   <script src="js/wall.js" defer></script>
   <script src="js/fx.js" defer></script>
