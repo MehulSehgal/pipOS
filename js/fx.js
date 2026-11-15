@@ -257,6 +257,7 @@
 
       if (!validation.ok) {
         err.textContent = validation.error || 'Write a wish first. Even a tiny one counts.';
+        wish.setAttribute('aria-invalid', 'true');
         wish.focus();
         return;
       }
@@ -267,6 +268,8 @@
         var check = wall.checkRateLimit(history);
         if (!check.allowed) {
           err.textContent = check.error;
+          wish.setAttribute('aria-invalid', 'true');
+          wish.focus();
           return;
         }
         history = check.history;

@@ -9,6 +9,116 @@
 [![Accessibility: WCAG AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-purple.svg?style=flat-square)](docs/CSS.md)
 [![Challenge: haX.baby Track 1](https://img.shields.io/badge/Challenge-haX.baby%20Track%201-pink.svg?style=flat-square)](SUBMISSION.md)
 
+## System Architecture
+
+Pip OS is designed with a lightweight, modular architecture utilizing plain standard Web APIs without compilers, bundlers, or external dependencies.
+
+```mermaid
+graph TD
+    HTML[index.html] --> CSS[css/style.css]
+    HTML --> MAIN[js/main.js Orchestrator]
+    MAIN --> UTIL[js/util.js Core Helpers]
+    MAIN --> AUDIO[js/audio.js Web Audio Synthesizer]
+    MAIN --> PIP[js/pip.js Interactive Mascot]
+    MAIN --> TOYS[js/toys.js Playable Windows]
+    MAIN --> WALL[js/wall.js Wish Wall Client]
+    MAIN --> FX[js/fx.js Confetti & Sparkles]
+    MAIN --> I18N[js/i18n.js Localization]
+
+    TOYS --> AUDIO
+    TOYS --> UTIL
+    WALL --> UTIL
+    WALL -.-> DB[(Firebase / Supabase)]
+    MAIN --> SW[sw.js PWA Offline Service Worker]
+```
+
+```
++-----------------------------------------------------------------------------------+
+|                                   index.html                                      |
+|    [Taskbar]          [Desktop Shortcuts]         [Main Stage]         [Dialogs]  |
+|  Theme/Sound/Lang         Quick Links          Hero / Work / Story       Secret   |
++-----------------------------------------------------------------------------------+
+                                         │
+                         ┌───────────────┴───────────────┐
+                         ▼                               ▼
+                 css/style.css                    js/main.js (Bootstrapper)
+             (Themes & Responsive)               Safe Module Initializer
+                                                         │
+         ┌──────────────────┬──────────────────┬─────────┴────────┬──────────────────┐
+         ▼                  ▼                  ▼                  ▼                  ▼
+    js/util.js         js/audio.js         js/pip.js          js/toys.js         js/wall.js
+  DOM $, clamp,       Web Audio API      Interactive SVG     6 Playable Toys    Shared Backend
+   localStorage        Gain & Melodies    Tracking & Mood     Canvas & Pointer   REST / Local
+         │                  │                                     │                  │
+         │                  └─────────────────────────────────────┘                  │
+         ▼                                                                           ▼
+   js/i18n.js (Localization)                                                  Firebase / Supabase
+   EN / HI Dictionary Engine                                                  Optional Cloud DB
+```
+
+### Module Responsibilities:
+- `window.PIP.$` & `window.PIP.$$`: Micro DOM query selector helpers.
+- `window.PIP.store`: Safe `localStorage` wrapper with fallback memory storage.
+- `window.PIP.audio`: Real-time sound synthesis with `AudioContext`, pentatonic scales, ADSR envelope, gain attenuation, and master mute protection.
+- `window.PIP.pip`: SVG pupil tracking, head tilting, blinking, and day/night sleepy mood transitions.
+- `window.PIP.toys`: Six interactive toys (`music-box.exe`, `darkroom.exe`, `stacker.exe`, `delivery-route.exe`, `storybook.exe`, `growth-chart.exe`).
+- `window.PIP.wall`: Wish wall client supporting rate limiting, XSS-safe text rendering, and pluggable REST backends.
+- `window.PIP.fx`: Canvas confetti explosions and pointer sparkle trails with `prefers-reduced-motion` detection.
+- `window.PIP.i18n`: Zero-dependency bilingual localization engine (English / Hindi).
+- `sw.js`: PWA service worker providing full offline caching.
+
+---
+
+## IEEE IGDTUW Open Source Week 10.0 Contributor Guide
+
+Welcome IEEE IGDTUW Open Source Week contributors! Pip's Dream OS is built for rapid, fun, and accessible contributions.
+
+### 1. Zero-Dependency Philosophy
+- **No `npm install`** and **no build step**. Everything runs directly in standard evergreen browsers.
+- Do not add package dependencies or external CDNs unless approved in an issue first.
+
+### 2. Local Setup in Under 60 Seconds
+```bash
+# 1. Fork repository on GitHub, then clone your fork:
+git clone https://github.com/<your-username>/pipOS.git
+cd pipOS
+
+# 2. Add upstream remote:
+git remote add upstream https://github.com/Tech4Aditya/pipOS.git
+
+# 3. Start local development server:
+python3 -m http.server 8000
+# or on Windows:
+python -m http.server 8000
+
+# 4. Open http://localhost:8000 in your browser.
+```
+
+### 3. Branching & PR Workflow
+- Always branch cleanly off latest `upstream/main`:
+  ```bash
+  git fetch upstream
+  git checkout upstream/main
+  git checkout -b feature/your-feature-name
+  # or: git checkout -b fix/issue-description
+  ```
+- Keep each PR small, focused, and atomic (one issue per PR).
+- Run the built-in test suite before opening a PR:
+  ```bash
+  node --test
+  ```
+- Check that the browser DevTools console has **0 errors** and **0 warnings**.
+
+### 4. Accessibility & Performance Standards
+- **WCAG AA Contrast**: Ensure all text has at least 4.5:1 contrast against its background.
+- **Keyboard & Screen Readers**: All interactive elements must have visible focus rings (`:focus-visible`) and descriptive `aria-label` / `aria-labelledby`.
+- **Reduced Motion**: Respect `prefers-reduced-motion: reduce` by disabling non-essential transitions and animations.
+- **Mobile Touch**: Ensure buttons have at least 44x44px touch targets on mobile devices.
+
+---
+
+## Run
+Open `index.html`, or `python3 -m http.server` and visit localhost:8000.
 <p align="center">
   <img src="assets/og-preview.png" alt="Pip's Dream OS - Junior Dream Engineer at the Midnight Nursery" width="100%" style="border-radius: 14px; border: 3px solid #5c4033; box-shadow: 7px 7px 0 #5c4033;">
 </p>
@@ -469,6 +579,11 @@ pipOS/
 
 ## 🎨 Credits & Canon
 
+## Files
+- Core: `index.html` · `css/style.css` · `sw.js` · `manifest.webmanifest`
+- Modules: `js/{util,audio,wall,fx,pip,toys,i18n,main}.js`
+- Test Suites: `js/{maths.test,wall.test,xss.test,og.test,pwa.test,a11y.test,audio.test,storybook.test,growth.test,i18n.test,touch.test}.js`
+- Assets: `assets/` (SVG icons, PWA icons, Open Graph preview)
 - **Challenge & Canon:** Pip's character concept, name, and lore belong to the **haX.baby "Baby's First Website"** challenge (Track 1: *Pip, the Skull Baby*).
 - **Illustration:** The hero Pip illustration is an inline SVG drawn with AI assistance (Claude) from the official haX.baby character description.
 - **Typography:** Display typography uses [Fraunces](https://fonts.google.com/specimen/Fraunces) and interface typography uses [Fredoka](https://fonts.google.com/specimen/Fredoka), both licensed under the [SIL Open Font License](http://scripts.sil.org/OFL).

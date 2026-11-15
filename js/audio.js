@@ -11,10 +11,24 @@
 
   var ctx = null, master = null, reverbIn = null;
   var state = store.get('sound', '');
+  var currentVolume = parseFloat(store.get('volume', '0.7'));
+  if (isNaN(currentVolume) || currentVolume < 0 || currentVolume > 1) currentVolume = 0.7;
   var endlessTimer = 0;
   var listeners = [];
 
   function isOn() { return state === 'on'; }
+
+  function setVolume(val) {
+    currentVolume = clamp(parseFloat(val), 0, 1);
+    store.set('volume', currentVolume);
+    if (master && ctx) {
+      master.gain.setValueAtTime(currentVolume, ctx.currentTime);
+    }
+  }
+
+  function getVolume() {
+    return currentVolume;
+  }
 
   function makeImpulse(c, seconds, decay) {
     var rate = c.sampleRate, len = Math.floor(rate * seconds);
@@ -33,7 +47,7 @@
       if (!AC) return false;
       try { ctx = new AC(); } catch (e) { ctx = null; return false; }
       master = ctx.createGain();
-      master.gain.value = 0.7;
+      master.gain.value = currentVolume;
       var comp = ctx.createDynamicsCompressor();
       master.connect(comp);
       comp.connect(ctx.destination);
@@ -167,6 +181,8 @@
     startEndless: startEndless,
     stopEndless: stopEndless,
     isEndless: isEndless,
-    onChange: onChange
+    onChange: onChange,
+    setVolume: setVolume,
+    getVolume: getVolume
   };
 })();

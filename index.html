@@ -53,15 +53,19 @@
   <header class="taskbar">
     <a class="start" href="#hello"><svg viewBox="0 0 20 20" aria-hidden="true"><use href="#star" width="20" height="20"/></svg><span>Pip OS</span></a>
     <nav class="task-nav" aria-label="Sections">
-      <a href="#hello">Pip</a>
-      <a href="#work">Work</a>
-      <a href="#story">Story</a>
-      <a href="#wall">Wall</a>
+      <a href="#hello" data-i18n="nav_pip">Pip</a>
+      <a href="#work" data-i18n="nav_work">Work</a>
+      <a href="#story" data-i18n="nav_story">Story</a>
+      <a href="#wall" data-i18n="nav_wall">Wall</a>
     </nav>
     <div class="task-right">
       <button class="tb-btn" id="soundBtn" type="button" data-silent aria-pressed="false" aria-label="Sound off, turn sound on">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M3 9v6h4l5 4V5L7 9H3z"/><path class="waves" d="M16 8c1.5 1.2 1.5 6.8 0 8M19 5c3 3 3 11 0 14"/><path class="slash" d="M16 9l6 6M22 9l-6 6"/></svg>
         <span id="soundLabel">Sound off</span>
+      </button>
+      <button class="tb-btn" id="langBtn" type="button" aria-label="Language: English, हिन्दी में बदलें">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="globe" cx="12" cy="12" r="9"/><ellipse class="globe" cx="12" cy="12" rx="4" ry="9"/><path class="globe" d="M3 12h18"/></svg>
+        <span id="langLabel">EN</span>
       </button>
       <button class="tb-btn" id="themeBtn" type="button" aria-label="Day mode, switch to night mode">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="sun" cx="12" cy="12" r="4.5"/><path class="rays" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/><path class="moon" d="M20 14.5A8 8 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
@@ -80,7 +84,7 @@
     <button type="button" id="trashBtn" aria-label="Nightmares trash can"><span class="ic ic-trash" aria-hidden="true"></span>Nightmares</button>
   </nav>
 
-  <main id="main">
+  <main id="main" tabindex="-1">
     <noscript><p class="noscript">Pip works best with JavaScript on. The story: Pip arrived in a laundry basket, hated silence, invented lullabies, and now delivers dreams by cloud.</p></noscript>
 
     <!-- HELLO -->
@@ -88,18 +92,18 @@
       <div class="win-bar"><span class="win-title" id="helloTitle">pip.exe</span><span class="win-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
       <div class="hero-body">
         <div class="hero-copy">
-          <h1>I build the dreams you fall asleep inside.</h1>
-          <p class="lede">Junior Dream Engineer at the Midnight Nursery. Lullabies, nightlights and rooftop deliveries, all finished before sunrise.</p>
+          <h1 data-i18n="hero_title">I build the dreams you fall asleep inside.</h1>
+          <p class="lede" data-i18n="hero_lede">Junior Dream Engineer at the Midnight Nursery. Lullabies, nightlights and rooftop deliveries, all finished before sunrise.</p>
           <div class="hero-actions">
-            <button class="btn btn-primary" id="sayHi" type="button">Say hi to Pip</button>
-            <a class="btn" href="#work">See what Pip made</a>
+            <button class="btn btn-primary" id="sayHi" type="button" data-i18n="hero_say_hi">Say hi to Pip</button>
+            <a class="btn" href="#work" data-i18n="hero_see_work">See what Pip made</a>
           </div>
-          <p class="fine">Pip's eyes follow you. Flip the sun and moon switch up top and see what happens.</p>
+          <p class="fine" data-i18n="hero_fine">Pip's eyes follow you. Flip the sun and moon switch up top and see what happens.</p>
         </div>
         <div class="pip-wrap">
-          <p class="bubble" id="greeting">Hi! I'm Pip.</p>
+          <p class="bubble" id="greeting" data-i18n="hero_greeting">Hi! I'm Pip.</p>
           <div class="pip-float">
-            <svg id="pipSvg" class="pip-svg" viewBox="0 0 420 440" role="group" aria-label="Pip, the skull baby">
+            <svg id="pipSvg" class="pip-svg" viewBox="0 0 420 440" role="group" aria-labelledby="pipT pipD">
               <title id="pipT">Pip, the skull baby</title>
               <desc id="pipD">A cute baby with a round skull face, glowing amber eyes, a tiny crooked smile and a starry nightcap with a pink bow, floating on a cloud and waving.</desc>
               <defs>
@@ -255,8 +259,8 @@
     <!-- WORK -->
     <section id="work" aria-labelledby="workTitle">
       <div class="sec-head">
-        <h2 id="workTitle">Things Pip made</h2>
-        <p>Five projects from the Midnight Nursery workbench. Every one of them is playable.</p>
+        <h2 id="workTitle" data-i18n="work_title">Things Pip made</h2>
+        <p data-i18n="work_desc">Five projects from the Midnight Nursery workbench. Every one of them is playable.</p>
       </div>
       <div class="work">
         <!-- Lullaby Lab -->
@@ -269,9 +273,26 @@
             </div>
             <div class="mb-stage" id="mbStage" aria-hidden="true"></div>
             <div class="keys" id="keys" role="group" aria-label="Music box keys"></div>
-            <div class="row">
-              <button class="btn btn-primary" id="windBtn" type="button" data-silent aria-pressed="false">Wind the box</button>
-              <button class="btn" id="endlessBtn" type="button" data-silent aria-pressed="false">Endless lullaby</button>
+            <div class="row row-between lab-bar">
+              <div class="lab-actions">
+                <button class="btn btn-primary" id="windBtn" type="button" data-silent aria-pressed="false">Wind the box</button>
+                <button class="btn" id="endlessBtn" type="button" data-silent aria-pressed="false">Endless lullaby</button>
+              </div>
+              <div class="lab-controls">
+                <div class="tune-wrap">
+                  <label for="tuneSelect" class="lab-label">Tune</label>
+                  <select id="tuneSelect" class="lab-select" aria-label="Select lullaby melody">
+                    <option value="0">The Nursery Step</option>
+                    <option value="1">Cloud Patrol</option>
+                    <option value="2">Starlight Waltz</option>
+                  </select>
+                </div>
+                <div class="vol-wrap">
+                  <label for="volSlider" class="lab-label"><span aria-hidden="true">♪</span> Volume</label>
+                  <input type="range" id="volSlider" class="lab-slider" min="0" max="1" step="0.05" value="0.7" aria-label="Music box volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70" aria-valuetext="70 percent volume">
+                  <span id="volValue" class="vol-val" aria-hidden="true">70%</span>
+                </div>
+              </div>
             </div>
           </div>
         </article>
@@ -286,11 +307,11 @@
             </div>
             <div class="darkroom" id="darkroom" tabindex="0" aria-label="Dark nursery. Move your pointer, drag the lantern, or use arrow keys to shine the light.">
               <div class="dr-hidden" id="drHidden" aria-hidden="true">
-                <svg class="dr-item" data-item viewBox="-10 -10 20 20" style="left:12%;top:24%"><use href="#star"/></svg>
-                <svg class="dr-item" data-item viewBox="-10 -10 20 20" style="left:78%;top:18%"><use href="#star"/></svg>
-                <svg class="dr-item" data-item viewBox="-10 -10 20 20" style="left:46%;top:70%"><use href="#star"/></svg>
-                <svg class="dr-item" data-item viewBox="-10 -10 20 20" style="left:88%;top:74%"><use href="#star"/></svg>
-                <svg class="dr-item" data-item viewBox="-10 -10 20 20" style="left:26%;top:80%"><use href="#star"/></svg>
+                <svg class="dr-item" data-item data-name="starlight wisp" viewBox="-10 -10 20 20" style="left:12%;top:24%"><use href="#star"/></svg>
+                <svg class="dr-item" data-item data-name="moon honey" viewBox="-10 -10 20 20" style="left:78%;top:18%"><use href="#star"/></svg>
+                <svg class="dr-item" data-item data-name="warm soup dream" viewBox="-10 -10 20 20" style="left:46%;top:70%"><use href="#star"/></svg>
+                <svg class="dr-item" data-item data-name="cloud pillow" viewBox="-10 -10 20 20" style="left:88%;top:74%"><use href="#star"/></svg>
+                <svg class="dr-item" data-item data-name="spare sock" viewBox="-10 -10 20 20" style="left:26%;top:80%"><use href="#star"/></svg>
                 <span class="dr-psst">psst... the lantern remembers every dream</span>
                 <span class="dr-moon"></span>
               </div>
@@ -359,6 +380,138 @@
             <div class="row row-between">
               <button class="btn btn-primary" id="flyBtn" type="button" aria-controls="routeSvg routeLabel">Fly the route</button>
               <p class="score" id="routeLabel" aria-live="polite" aria-atomic="true">Waiting at the nursery window</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Bedtime Storybook -->
+        <article id="storybook" class="win w-flipbook" data-foldable aria-labelledby="bookTitle">
+          <div class="win-bar"><h3 class="win-title" id="bookTitle">storybook.exe</h3></div>
+          <div class="win-body">
+            <div class="proj-head">
+              <p>Turn the pages of Pip's bedtime tales. Use arrow keys, swipe, or click Next.</p>
+            </div>
+            <div class="book" id="book" tabindex="0" role="region" aria-label="Bedtime storybook flipbook. Use Left and Right arrow keys to flip pages.">
+              <div class="book-viewport">
+                <article class="book-page is-current" data-page="1" aria-labelledby="bp1">
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="var(--sky)"/>
+                      <circle cx="230" cy="40" r="22" fill="#ffe9ae"/>
+                      <use href="#star" x="40" y="30" width="12" height="12" fill="#ffd98a"/>
+                      <use href="#star" x="120" y="24" width="10" height="10" fill="#ffd98a"/>
+                      <ellipse cx="140" cy="140" rx="90" ry="24" fill="#fff"/>
+                      <rect x="95" y="100" width="90" height="42" rx="6" fill="#c98f6b" stroke="var(--line)" stroke-width="2.5"/>
+                      <circle cx="140" cy="94" r="14" fill="#fff1da" stroke="var(--line)" stroke-width="2"/>
+                      <circle cx="135" cy="94" r="3" fill="#ffc24d"/>
+                      <circle cx="145" cy="94" r="3" fill="#ffc24d"/>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp1">The Midnight Basket</h4>
+                    <p>A wicker basket floated through the nursery fog at quarter past midnight. Inside was Pip: tiny skull face, sleepy amber eyes, and a starry nightcap resting crooked. Pip yawned once, smiled at the moon, and made the nursery home.</p>
+                  </div>
+                </article>
+
+                <article class="book-page" data-page="2" aria-labelledby="bp2" aria-hidden="true" inert>
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="var(--mint)"/>
+                      <line x1="80" y1="20" x2="80" y2="160" stroke="var(--line)" stroke-width="3"/>
+                      <line x1="110" y1="20" x2="110" y2="160" stroke="var(--line)" stroke-width="3"/>
+                      <line x1="80" y1="50" x2="110" y2="50" stroke="var(--line)" stroke-width="2.5"/>
+                      <line x1="80" y1="85" x2="110" y2="85" stroke="var(--line)" stroke-width="2.5"/>
+                      <line x1="80" y1="120" x2="110" y2="120" stroke="var(--line)" stroke-width="2.5"/>
+                      <circle cx="95" cy="40" r="14" fill="#fff1da" stroke="var(--line)" stroke-width="2"/>
+                      <use href="#star" x="180" y="32" width="28" height="28" fill="#ffd98a" stroke="var(--line)" stroke-width="1.5"/>
+                      <path d="M106 38Q140 30 175 42" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 3"/>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp2">The Stolen Star</h4>
+                    <p>Every evening at twilight, Pip climbs the tallest bedpost with a wooden ladder. One by one, Pip plucks falling stars from the windowsill and tucks them inside the nightcap's woolly brim to keep the bad dreams far away.</p>
+                  </div>
+                </article>
+
+                <article class="book-page" data-page="3" aria-labelledby="bp3" aria-hidden="true" inert>
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="var(--butter)"/>
+                      <ellipse cx="140" cy="120" rx="55" ry="32" fill="#8e583c" stroke="var(--line)" stroke-width="3"/>
+                      <path d="M95 120Q140 155 185 120" fill="#ffc24d"/>
+                      <circle cx="140" cy="65" r="14" fill="#fff1da" stroke="var(--line)" stroke-width="2"/>
+                      <line x1="148" y1="72" x2="135" y2="125" stroke="var(--line)" stroke-width="3" stroke-linecap="round"/>
+                      <circle cx="115" cy="85" r="5" fill="#fff" opacity="0.8"/>
+                      <circle cx="165" cy="88" r="4" fill="#fff" opacity="0.8"/>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp3">Mixing Lantern Honey</h4>
+                    <p>In the nursery pantry, Pip stirs glow-worm nectar, moon water, and warm honey in a bronze kettle. That is how the dream lanterns are filled: with light soft enough that even the fussiest little ghost can fall asleep.</p>
+                  </div>
+                </article>
+
+                <article class="book-page" data-page="4" aria-labelledby="bp4" aria-hidden="true" inert>
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="var(--sky)"/>
+                      <rect x="30" y="120" width="45" height="40" fill="#b07d62" stroke="var(--line)" stroke-width="2.5"/>
+                      <polygon points="25,120 52,95 80,120" fill="#8e4a49" stroke="var(--line)" stroke-width="2"/>
+                      <rect x="180" y="110" width="55" height="50" fill="#b07d62" stroke="var(--line)" stroke-width="2.5"/>
+                      <polygon points="175,110 207,85 240,110" fill="#8e4a49" stroke="var(--line)" stroke-width="2"/>
+                      <path d="M50 70Q120 20 200 65" fill="none" stroke="var(--line)" stroke-width="2.5" stroke-dasharray="4 4"/>
+                      <ellipse cx="125" cy="45" rx="28" ry="11" fill="#fff" stroke="var(--line)" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp4">Rooftop Wind Secrets</h4>
+                    <p>Clouds don't steer with wheels; they steer with whispers. When Pip delivers dreams over cobblestones, Pip blows softly across the chimney pots. The chimneys whistle back, guiding the cloud straight to every bedroom with an open window.</p>
+                  </div>
+                </article>
+
+                <article class="book-page" data-page="5" aria-labelledby="bp5" aria-hidden="true" inert>
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="var(--blush)"/>
+                      <line x1="30" y1="60" x2="250" y2="70" stroke="var(--line)" stroke-width="2.5"/>
+                      <path d="M70 63l-4 35 18 10 8-8-6-35z" fill="#ff9fb4" stroke="var(--line)" stroke-width="2"/>
+                      <path d="M130 65l-4 38 18 10 8-8-6-38z" fill="#9fd8c4" stroke="var(--line)" stroke-width="2"/>
+                      <path d="M190 67l-4 35 18 10 8-8-6-35z" fill="#ffd27a" stroke="var(--line)" stroke-width="2"/>
+                      <use href="#star" x="30" y="50" width="14" height="14" fill="#ffd98a"/>
+                      <use href="#star" x="245" y="60" width="14" height="14" fill="#ffd98a"/>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp5">The Sock Detective</h4>
+                    <p>Where do lost socks go? They don't vanish. Pip collects single socks from the nursery floor and sews them into soft cloud hammocks for sleepy moths. Pip says everyone deserves cozy toes, even the tiniest night fliers.</p>
+                  </div>
+                </article>
+
+                <article class="book-page" data-page="6" aria-labelledby="bp6" aria-hidden="true" inert>
+                  <div class="bp-art">
+                    <svg viewBox="0 0 280 180" aria-hidden="true">
+                      <rect width="280" height="180" rx="8" fill="#1b1430"/>
+                      <circle cx="140" cy="90" r="50" fill="url(#gHalo)" opacity="0.6"/>
+                      <ellipse cx="140" cy="115" rx="55" ry="18" fill="var(--cloud)" stroke="var(--line)" stroke-width="2.5"/>
+                      <circle cx="140" cy="85" r="16" fill="#fff1da" stroke="var(--line)" stroke-width="2"/>
+                      <path d="M134 85q6 4 12 0" fill="none" stroke="var(--line)" stroke-width="1.8"/>
+                      <text x="175" y="65" font-family="var(--f-ui)" font-size="16" fill="#ffd98a">z</text>
+                      <text x="190" y="52" font-family="var(--f-ui)" font-size="20" fill="#ffd98a">Z</text>
+                    </svg>
+                  </div>
+                  <div class="bp-content">
+                    <h4 id="bp6">Goodnight, Little Dreamer</h4>
+                    <p>The sun is still hours away, but Pip's eyes are growing heavy. The music box slows, the last lantern flickers low, and the cloud curls up on the rug. Close your eyes now. Pip will watch over your dreams until morning.</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="row row-between book-bar">
+              <div class="book-nav">
+                <button class="btn" id="bookPrev" type="button" aria-label="Previous storybook page">← Back</button>
+                <button class="btn btn-primary" id="bookNext" type="button" aria-label="Next storybook page">Next →</button>
+              </div>
+              <p class="score" id="bookInd" aria-live="polite" aria-atomic="true">Page 1 of 6</p>
             </div>
           </div>
         </article>
@@ -434,6 +587,15 @@
         <div class="storybook" id="storybook" tabindex="0" aria-label="Pip's bedtime storybook. Use the arrow keys or buttons to turn pages.">
           <div class="scenes" aria-live="polite">
             <article class="scene is-active" aria-labelledby="sc1">
+      <h2 class="sr-only" id="storyH">Pip's story</h2>
+      <div class="story-track" id="storyTrack" style="--n:4">
+        <div class="win story-stage">
+          <div class="win-bar">
+            <h3 class="win-title">bedtime.exe</h3>
+            <span class="story-prog" aria-hidden="true"><i id="storyBar"></i></span>
+          </div>
+          <div class="scenes">
+            <article class="scene is-active" aria-labelledby="sc1" tabindex="-1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
                   <rect class="s-sky" width="320" height="200" rx="10"/>
@@ -446,9 +608,9 @@
                   <path class="s-cap" d="M188 118C192 96 214 92 232 100 212 102 206 110 204 116Z"/>
                 </svg>
               </div>
-              <div class="scene-text"><h3 id="sc1">The hiccup</h3><p>Nobody knows exactly where Pip came from. The night nurse found a laundry basket on the nursery step, a nightcap two sizes too big, and one very loud hiccup. Inside the basket: Pip, giggling at the moon.</p></div>
+              <div class="scene-text"><h3 id="sc1" data-i18n="story_h1">The hiccup</h3><p data-i18n="story_p1">Nobody knows exactly where Pip came from. The night nurse found a laundry basket on the nursery step, a nightcap two sizes too big, and one very loud hiccup. Inside the basket: Pip, giggling at the moon.</p></div>
             </article>
-            <article class="scene" aria-labelledby="sc2" aria-hidden="true">
+            <article class="scene" aria-labelledby="sc2" aria-hidden="true" inert tabindex="-1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
                   <rect class="s-sky" width="320" height="200" rx="10"/>
@@ -459,9 +621,9 @@
                   <text class="s-z" x="104" y="76" font-size="20">z</text><text class="s-z" x="188" y="60" font-size="24">Z</text><text class="s-z" x="272" y="80" font-size="18">z</text>
                 </svg>
               </div>
-              <div class="scene-text"><h3 id="sc2">No silence allowed</h3><p>The Midnight Nursery had one rule: every little ghost falls asleep to something. Humming, rain, a rusty fan. Pip took one look at all that waiting quiet and decided silence was a problem to be engineered.</p></div>
+              <div class="scene-text"><h3 id="sc2" data-i18n="story_h2">No silence allowed</h3><p data-i18n="story_p2">The Midnight Nursery had one rule: every little ghost falls asleep to something. Humming, rain, a rusty fan. Pip took one look at all that waiting quiet and decided silence was a problem to be engineered.</p></div>
             </article>
-            <article class="scene" aria-labelledby="sc3" aria-hidden="true">
+            <article class="scene" aria-labelledby="sc3" aria-hidden="true" inert tabindex="-1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
                   <rect class="s-sky" width="320" height="200" rx="10"/>
@@ -471,9 +633,9 @@
                   <use class="s-star" href="#star" x="96" y="38" width="20" height="20"/><use class="s-star" href="#star" x="144" y="18" width="14" height="14"/><use class="s-star" href="#star" x="196" y="36" width="22" height="22"/><use class="s-star" href="#star" x="244" y="20" width="12" height="12"/><use class="s-star" href="#star" x="54" y="76" width="12" height="12"/>
                 </svg>
               </div>
-              <div class="scene-text"><h3 id="sc3">The first lullaby</h3><p>Pip wound a dusty music box and turned the key the wrong way. Out came five notes, slightly crooked, just like Pip's smile. Eleven ghosts yawned at once. Nobody has stayed up past midnight since.</p></div>
+              <div class="scene-text"><h3 id="sc3" data-i18n="story_h3">The first lullaby</h3><p data-i18n="story_p3">Pip wound a dusty music box and turned the key the wrong way. Out came five notes, slightly crooked, just like Pip's smile. Eleven ghosts yawned at once. Nobody has stayed up past midnight since.</p></div>
             </article>
-            <article class="scene" aria-labelledby="sc4" aria-hidden="true">
+            <article class="scene" aria-labelledby="sc4" aria-hidden="true" inert tabindex="-1">
               <div class="scene-art">
                 <svg viewBox="0 0 320 200" aria-hidden="true">
                   <rect class="s-sky" width="320" height="200" rx="10"/>
@@ -486,7 +648,7 @@
                   <ellipse class="s-cloud" cx="190" cy="96" rx="26" ry="9"/><circle class="s-skull" cx="190" cy="82" r="11"/><circle class="s-eye" cx="186" cy="82" r="3"/><circle class="s-eye" cx="194" cy="82" r="3"/>
                 </svg>
               </div>
-              <div class="scene-text"><h3 id="sc4">The night shift</h3><p>Now Pip is a Junior Dream Engineer: lullabies in the lab, nightlights on the shelf, dreams delivered by cloud before sunrise. Tonight's route has seven stops. Leave your window open a crack.</p></div>
+              <div class="scene-text"><h3 id="sc4" data-i18n="story_h4">The night shift</h3><p data-i18n="story_p4">Now Pip is a Junior Dream Engineer: lullabies in the lab, nightlights on the shelf, dreams delivered by cloud before sunrise. Tonight's route has seven stops. Leave your window open a crack.</p></div>
             </article>
             <article class="scene" aria-labelledby="sc5">
               <div class="scene-art">
@@ -536,8 +698,8 @@
     <!-- WALL -->
     <section id="wall" aria-labelledby="wallTitle">
       <div class="sec-head">
-        <h2 id="wallTitle">The wish wall</h2>
-        <p>Leave Pip a wish. Pip reads every one, usually while yawning.</p>
+        <h2 id="wallTitle" data-i18n="wall_title">The wish wall</h2>
+        <p data-i18n="wall_desc">Leave Pip a wish. Pip reads every one, usually while yawning.</p>
       </div>
       <div class="wall">
         <article class="win w-wish" data-foldable aria-labelledby="wishTitle">
@@ -608,6 +770,7 @@
   <script src="js/audio.js" defer></script>
   <script src="js/wall.js" defer></script>
   <script src="js/fx.js" defer></script>
+  <script src="js/i18n.js" defer></script>
   <script src="js/pip.js" defer></script>
   <script src="js/toys.js" defer></script>
   <script src="js/main.js?v=storybook" defer></script>

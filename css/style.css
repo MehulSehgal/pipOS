@@ -89,6 +89,7 @@ p { margin: 0 0 1rem; }
 a { color: var(--berry-ink); }
 img, svg, canvas { max-width: 100%; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+#main:focus { outline: none; }
 .btn-primary:focus-visible, .start:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 3px;
@@ -134,6 +135,7 @@ code { font-size: 0.9em; background: var(--blush); padding: 0.05rem 0.3rem; bord
   font: 600 1rem var(--f-ui); color: var(--ink); text-decoration: none;
   background: var(--paper); border: 3px solid var(--line); border-radius: 999px;
   box-shadow: 0 4px 0 var(--shadow); cursor: pointer;
+  touch-action: manipulation;
   transition: transform 0.08s, box-shadow 0.08s;
 }
 .btn:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--shadow); }
@@ -178,7 +180,7 @@ code { font-size: 0.9em; background: var(--blush); padding: 0.05rem 0.3rem; bord
 }
 .tb-btn svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .tb-btn .spk, .tb-btn .sun, .tb-btn .moon { stroke: none; }
-.tb-btn .waves, .tb-btn .slash, .tb-btn .rays { fill: none; }
+.tb-btn .waves, .tb-btn .slash, .tb-btn .rays, .tb-btn .globe { fill: none; }
 .tb-btn .slash, .tb-btn .moon { display: none; }
 .tb-btn.is-off .waves { display: none; }
 .tb-btn.is-off .slash { display: inline; }
@@ -396,9 +398,32 @@ kbd {
   font: 600 0.95rem var(--f-ui); color: #5c4033;
   background: var(--k); border: 3px solid var(--line); border-radius: 6px 6px 16px 16px;
   box-shadow: 0 5px 0 var(--shadow); cursor: pointer;
+  touch-action: manipulation;
   transition: transform 0.08s, box-shadow 0.08s;
 }
 .key:active, .key.is-down { transform: translateY(4px); box-shadow: 0 1px 0 var(--shadow); }
+.lab-bar { margin-top: 0.9rem; gap: 0.8rem; }
+.lab-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.lab-controls { display: flex; flex-wrap: wrap; gap: 0.9rem; align-items: center; }
+.tune-wrap, .vol-wrap { display: flex; align-items: center; gap: 0.45rem; }
+.lab-label { font-size: 0.92rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.lab-select {
+  padding: 0.4rem 0.65rem;
+  font: 600 0.88rem var(--f-ui);
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--shadow);
+}
+.lab-select:focus-visible, .lab-slider:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.lab-slider {
+  width: 90px;
+  accent-color: var(--berry);
+  cursor: pointer;
+}
+.vol-val { font-size: 0.85rem; font-weight: 600; min-width: 32px; color: var(--ink); }
 
 /* --- 10.2 Nightlight Collection (Darkroom) --- */
 .darkroom {
@@ -470,9 +495,10 @@ kbd {
 }
 .lanterns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .lantern {
-  display: inline-flex; align-items: center; gap: 0.4rem; min-height: 40px; padding: 0.2rem 0.8rem 0.2rem 0.4rem;
+  display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0.2rem 0.8rem 0.2rem 0.4rem;
   font: 600 0.9rem var(--f-ui); color: var(--ink);
   background: var(--paper); border: 3px solid var(--line); border-radius: 999px; cursor: pointer;
+  touch-action: manipulation;
 }
 .lantern i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: 2px solid var(--line); box-shadow: 0 0 8px var(--c); }
 .lantern[aria-checked="true"] { background: var(--butter); box-shadow: 0 3px 0 var(--shadow); }
@@ -501,6 +527,81 @@ kbd {
 .route-svg .rd-skull { fill: #fff1da; stroke: #5c4033; stroke-width: 2; }
 .route-svg .rd-eye { fill: #2c1d19; }
 .route-svg .rd-cap { fill: #8b8fd9; stroke: #5c4033; stroke-width: 1.5; }
+
+/* --- 10.5 Bedtime Storybook Flipbook --- */
+.w-flipbook { grid-column: span 12; }
+.book {
+  position: relative;
+  background: var(--paper);
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 1.2rem;
+  min-height: 220px;
+  overflow: hidden;
+  outline: none;
+}
+.book:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.book-viewport { position: relative; min-height: 200px; }
+.book-page {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.4rem;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+  transform: translateX(20px);
+}
+.book-page.is-current {
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  transform: translateX(0);
+}
+.book-page.is-past {
+  transform: translateX(-20px);
+}
+.bp-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.bp-content h4 {
+  font-family: var(--f-head);
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem;
+  color: var(--berry-ink);
+}
+.bp-content p {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.book-bar { margin-top: 1rem; }
+.book-nav { display: flex; gap: 0.6rem; }
+.book-nav .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 0 var(--shadow);
+}
+
+@media (max-width: 760px) {
+  .book-page {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+  .bp-art svg {
+    max-height: 160px;
+  }
+}
 
 /* ==========================================================================
    11. Bedtime Storybook (Track & Scenes)
@@ -690,7 +791,7 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
   }
   .start { padding: 0.3rem 0.6rem; }
   .start span, .tb-btn span, .clock { display: none; }
-  .tb-btn { min-width: 44px; padding: 0.3rem; }
+  .tb-btn { min-width: 44px; min-height: 44px; padding: 0.3rem; touch-action: manipulation; }
   .task-nav { gap: 0; }
   .task-nav a { padding: 0.35rem 0.5rem; font-size: 0.88rem; }
   .win:not(.hero) { content-visibility: auto; contain-intrinsic-size: auto 320px; }
@@ -727,6 +828,6 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
   .pip-svg.is-wave .p-arm-wave { animation: wave-big 0.42s ease-in-out 2; }
   .marquee { overflow-x: auto; }
   .marquee-track span:last-child { display: none; }
-  .scene, .odo-strip, .toast, .growth-fill { transition-duration: 0.01s; }
+  .scene, .odo-strip, .toast, .growth-fill, .book-page { transition-duration: 0.01s; transform: none !important; }
   .sparkle { display: none; }
 }

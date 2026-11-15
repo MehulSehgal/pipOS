@@ -195,6 +195,12 @@
     if (next) next.addEventListener('click', function () { move(1); });
     dots.forEach(function (d, i) {
       d.addEventListener('click', function () { setScene(i); });
+      d.addEventListener('click', function () {
+        var top = track.getBoundingClientRect().top + window.pageYOffset - stickyTop();
+        var y = top + ((i + 0.5) / n) * range();
+        window.scrollTo({ top: y, behavior: reduce.matches ? 'auto' : 'smooth' });
+        if (scenes[i] && scenes[i].focus) scenes[i].focus({ preventScroll: true });
+      });
       d.addEventListener('keydown', function (e) {
         var nextDot = -1;
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextDot = Math.min(n - 1, i + 1);
@@ -272,6 +278,7 @@
 
   /* ---------- go ---------- */
   safe('images', PIP.optionalImages);
+  safe('i18n', PIP.i18n ? PIP.i18n.init : function () {});
   safe('pip', PIP.pip.init);
   safe('theme', initTheme);
   safe('sound', initSound);
