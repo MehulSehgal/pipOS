@@ -1550,6 +1550,51 @@ html.js .growth-chart.is-visible .growth-fill {
 .mode-hint { margin: 0; min-height: 1.2em; font-size: 0.82rem; }
 @media (max-width: 760px) { .opt-btn { min-height: 44px; } }
 
+/* Rattle & Blocks: Top 5 leaderboard */
+.block-leaderboard {
+  margin-top: 0.9rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--paper);
+  border: 2px dashed var(--line);
+  border-radius: 10px;
+}
+.block-leaderboard-title {
+  display: block;
+  font-family: var(--f-ui);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--berry);
+  margin-bottom: 0.35rem;
+}
+.block-leaderboard-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.block-leaderboard-list li {
+  font-family: var(--f-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  background: var(--butter);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+}
+.block-leaderboard-list .block-leaderboard-empty {
+  font-weight: 400;
+  font-style: italic;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  opacity: 0.8;
+}
+
 /* --- 10.4 Dream Delivery Route (SVG) --- */
 .route-stage {
   position: relative;

@@ -562,6 +562,7 @@
      ===================================================================== */
   function initBlocks() {
     var cv = $('#blockCanvas'), btn = $('#blockDrop'), scoreEl = $('#blockScore');
+    var leaderboardListEl = $('#blockLeaderboardList');
     if (!cv || !cv.getContext) return;
     var ctx = cv.getContext('2d');
     if (!ctx) return;
@@ -589,6 +590,47 @@
     var mode = MODES[modeKey], theme = THEMES[themeKey];
     function bestKey() { return modeKey === 'normal' ? 'best' : 'best-' + modeKey; }
     var best = parseInt(store.get(bestKey(), '0'), 10) || 0;
+
+    function getTopScores() {
+      try {
+        var raw = store.get('blockTopScores', '[]');
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(function (s) { return typeof s === 'number' && !isNaN(s) && s > 0; })
+                       .sort(function (a, b) { return b - a; })
+                       .slice(0, 5);
+        }
+      } catch (e) { /* ignore parse error */ }
+      return [];
+    }
+
+    function saveTopScore(score) {
+      if (!score || score <= 0) return;
+      var scores = getTopScores();
+      scores.push(score);
+      scores.sort(function (a, b) { return b - a; });
+      scores = scores.slice(0, 5);
+      store.set('blockTopScores', JSON.stringify(scores));
+      renderLeaderboard(scores);
+    }
+
+    function renderLeaderboard(scores) {
+      if (!leaderboardListEl) return;
+      var list = scores || getTopScores();
+      leaderboardListEl.innerHTML = '';
+      if (!list.length) {
+        var emptyLi = document.createElement('li');
+        emptyLi.className = 'block-leaderboard-empty';
+        emptyLi.textContent = 'No scores yet \u2014 start stacking!';
+        leaderboardListEl.appendChild(emptyLi);
+        return;
+      }
+      list.forEach(function (val, idx) {
+        var li = document.createElement('li');
+        li.textContent = '#' + (idx + 1) + ' \u2014 ' + val + ' pts';
+        leaderboardListEl.appendChild(li);
+      });
+    }
 
     var modeBtns = $$('[data-block-mode]'), themeBtns = $$('[data-block-theme]'), hintEl = $('#blockModeHint');
     function syncUI() {
@@ -623,6 +665,7 @@
       });
     });
     syncUI();
+    renderLeaderboard();
 
     function rr(x, y, w, h, rad) {
       rad = Math.min(rad, w / 2, h / 2);
@@ -637,7 +680,7 @@
     function levelY(i) { return H - 10 - (i + 1) * BH; } // world y of block i's top
 
     function reset() {
-      st = { stack: [{ x: (W - mode.start) / 2, w: mode.start, i: 0 }], cur: null, chips: [], score: 0, over: false, cam: 0 };
+      st = { stack: [{ x: (W - mode.start) / 2, w: mode.start, i: 0 }], cur: null, chips: [], score: 0, combo: 0, over: false, cam: 0 };
       spawn();
       hud();
       if (!raf && visible) loop();
@@ -648,7 +691,11 @@
       st.cur = { x: dir > 0 ? 0 : W - top.w, w: top.w, dir: dir, i: st.stack.length };
     }
     function hud() {
-      scoreEl.textContent = 'Height ' + st.score + ', best ' + best;
+      var txt = 'Height ' + st.score + ', best ' + best;
+      if (st.combo > 1) {
+        txt += ' (Combo x' + st.combo + '!)';
+      }
+      scoreEl.textContent = txt;
     }
 
     function drop() {
@@ -659,6 +706,7 @@
         st.chips.push({ x: c.x, w: c.w, y: levelY(c.i), vy: 0, i: c.i });
         st.cur = null;
         st.over = true;
+        saveTopScore(st.score);
         if (st.score > best) { best = st.score; store.set(bestKey(), best); }
         hud();
         toast('Wobbly! Your tower is ' + st.score + ' blocks tall.');
@@ -666,8 +714,12 @@
         return;
       }
       var perfect = Math.abs(c.x - top.x) < 5, nx = c.x, nw = c.w;
-      if (perfect) { nx = top.x; nw = top.w; }
-      else {
+      if (perfect) {
+        nx = top.x;
+        nw = top.w;
+        st.combo = (st.combo || 0) + 1;
+      } else {
+        st.combo = 0;
         if (c.x < top.x) st.chips.push({ x: c.x, w: top.x - c.x, y: levelY(c.i), vy: 0, i: c.i });
         else st.chips.push({ x: top.x + top.w, w: c.x + c.w - (top.x + top.w), y: levelY(c.i), vy: 0, i: c.i });
         nx = left;
@@ -676,7 +728,8 @@
       st.stack.push({ x: nx, w: nw, i: c.i });
       st.score += 1;
       if (audio.isOn()) {
-        var f = audio.SCALE[st.score % 5] * (st.score % 10 < 5 ? 1 : 1.5);
+        var pitchMult = Math.pow(1.1, Math.min(st.combo, 8));
+        var f = audio.SCALE[st.score % 5] * (st.score % 10 < 5 ? 1 : 1.5) * pitchMult;
         audio.note(f, { dur: perfect ? 1.4 : 0.8, gain: perfect ? 0.22 : 0.15 });
         if (perfect) audio.note(f * 1.5, { dur: 1.2, gain: 0.1, when: 0.07 });
       }
