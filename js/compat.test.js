@@ -44,3 +44,9 @@ test('Rattle & Blocks canvas dynamically updates DPR on mobile zoom/orientation 
   assert.match(toysSrc, /window\.addEventListener\(['"]resize['"],\s*updateDpr\)/,
     'toys.js must update canvas resolution on resize/orientation events');
 });
+
+test('Toast notification manages and clears entry timer to prevent race condition overwrite', () => {
+  const utilSrc = fs.readFileSync(path.resolve(__dirname, 'util.js'), 'utf8');
+  assert.match(utilSrc, /toastShowTimer/, 'util.js must declare and manage toastShowTimer');
+  assert.match(utilSrc, /clearTimeout\(\s*toastShowTimer\s*\)/, 'util.js must clear toastShowTimer before setting a new toast');
+});

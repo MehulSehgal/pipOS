@@ -72,24 +72,79 @@
     });
   }
 
+  var idleTimer = 0, blinkTimer = 0;
+  var svgInView = true;
+
   // when nobody is moving, Pip looks around by itself
   function idleLoop() {
-    window.setTimeout(function () {
-      if (performance.now() - lastPointer > 3500 && performance.now() - lastGlance > 2500 && !document.hidden) {
+    window.clearTimeout(idleTimer);
+    if (document.hidden || !svgInView) {
+      idleTimer = 0;
+      return;
+    }
+    idleTimer = window.setTimeout(function () {
+      if (performance.now() - lastPointer > 3500 && performance.now() - lastGlance > 2500 && !document.hidden && svgInView) {
         var r = svg.getBoundingClientRect();
         var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
         look(cx + (Math.random() - 0.5) * 520, cy + (Math.random() - 0.5) * 360);
+        if (mood === 'night' && Math.random() < 0.28) {
+          yawn(2600);
+        }
       }
       idleLoop();
     }, 1600 + Math.random() * 1800);
   }
 
   function blinkLoop() {
-    window.setTimeout(function () {
-      svg.classList.add('is-blink');
-      window.setTimeout(function () { svg.classList.remove('is-blink'); }, 140);
+    window.clearTimeout(blinkTimer);
+    if (document.hidden || !svgInView) {
+      blinkTimer = 0;
+      return;
+    }
+    blinkTimer = window.setTimeout(function () {
+      if (!document.hidden && svgInView) {
+        svg.classList.add('is-blink');
+        window.setTimeout(function () { svg.classList.remove('is-blink'); }, 140);
+      }
       blinkLoop();
     }, 2400 + Math.random() * 3600);
+  }
+
+  function resumePipLoops() {
+    if (!document.hidden && svgInView) {
+      if (!idleTimer) idleLoop();
+      if (!blinkTimer) blinkLoop();
+    }
+  }
+
+  /* ---------- expressions & moods ---------- */
+  var exprTimer = 0;
+  function setExpression(expr, ms) {
+    if (!svg) return;
+    svg.classList.remove('is-surprised', 'is-shy', 'is-yawn');
+    window.clearTimeout(exprTimer);
+    if (!expr) return;
+    svg.classList.add('is-' + expr);
+    exprTimer = window.setTimeout(function () {
+      svg.classList.remove('is-' + expr);
+    }, ms || 2200);
+  }
+
+  function surprise(ms) {
+    setExpression('surprised', ms || 2000);
+    if (PIP.audio && PIP.audio.isOn()) PIP.audio.pop();
+  }
+
+  function shy(ms) {
+    setExpression('shy', ms || 2500);
+    if (PIP.audio && PIP.audio.isOn()) PIP.audio.pop();
+  }
+
+  function yawn(ms) {
+    setExpression('yawn', ms || 2800);
+    if (PIP.audio && PIP.audio.isOn()) {
+      PIP.audio.note(392, { dur: 1.4, gain: 0.08, type: 'triangle', bell: false });
+    }
   }
 
   /* ---------- moods ---------- */
@@ -147,6 +202,7 @@
       taps = 0;
       wake(5200);
       PIP.fx.confetti(170);
+      if (PIP.stickers) PIP.stickers.unlock('star');
       if (PIP.audio.isOn()) {
         PIP.audio.giggle();
         [0, 2, 4, 5, 7].forEach(function (n, i) {
@@ -172,6 +228,17 @@
 
     window.addEventListener('pointermove', onPointer, { passive: true });
     window.addEventListener('pointerdown', onPointer, { passive: true });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) resumePipLoops();
+      });
+    }
+    if (PIP.watchVisible && svg) {
+      PIP.watchVisible(svg, function (v) {
+        svgInView = v;
+        if (v) resumePipLoops();
+      });
+    }
     idleLoop();
     blinkLoop();
     greet();
@@ -186,6 +253,32 @@
       svg.classList.add('is-wave');
       window.setTimeout(function () { svg.classList.remove('is-wave'); }, 2300);
     });
+
+    var nose = $('#pipNose');
+    if (nose) {
+      nose.addEventListener('mouseenter', function () { surprise(2000); });
+      nose.addEventListener('focus', function () { surprise(2000); });
+      nose.addEventListener('click', function (e) {
+        e.stopPropagation();
+        surprise(2200);
+      });
+      nose.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); surprise(2200); }
+      });
+    }
+
+    var lastHeadClick = 0;
+    if (head) {
+      head.addEventListener('click', function () {
+        var now = performance.now();
+        if (now - lastHeadClick < 450) {
+          shy(2500);
+          lastHeadClick = 0;
+        } else {
+          lastHeadClick = now;
+        }
+      });
+    }
 
     if (egg) {
       egg.addEventListener('click', onEgg);
@@ -207,7 +300,11 @@
     glance: glance,
     setMood: setMood,
     wake: wake,
-    getMood: function () { return mood; }
+    getMood: function () { return mood; },
+    setExpression: setExpression,
+    surprise: surprise,
+    shy: shy,
+    yawn: yawn
   };
 
   if (typeof module !== 'undefined' && module.exports) {

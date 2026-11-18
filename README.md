@@ -9,9 +9,14 @@
 [![Accessibility: WCAG AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-purple.svg?style=flat-square)](docs/CSS.md)
 [![Challenge: haX.baby Track 1](https://img.shields.io/badge/Challenge-haX.baby%20Track%201-pink.svg?style=flat-square)](SUBMISSION.md)
 
-## System Architecture
+## System Architecture & Technical Guides
 
 Pip OS is designed with a lightweight, modular architecture utilizing plain standard Web APIs without compilers, bundlers, or external dependencies.
+
+📖 **Contributor Guides & Architecture**:
+- 🚀 **[First PR in 10 Minutes](docs/FIRST_PR.md)**: Step-by-step tutorial from forking to opening your first verified PR.
+- 🏛️ **[Full Architecture Guide](docs/ARCHITECTURE.md)**: Deep dive into `window.PIP` modules, SVG eye-tracking kinematics, and where each toy lives.
+- 🎨 **[CSS & Theming Guide](docs/CSS.md)**: Design tokens, responsive grids, and WCAG AA contrast rules.
 
 ```mermaid
 graph TD
@@ -71,7 +76,7 @@ graph TD
 
 ## IEEE IGDTUW Open Source Week 10.0 Contributor Guide
 
-Welcome IEEE IGDTUW Open Source Week contributors! Pip's Dream OS is built for rapid, fun, and accessible contributions.
+Welcome IEEE IGDTUW Open Source Week contributors! Pip's Dream OS is built for rapid, fun, and accessible contributions. Be sure to follow our **[First PR in 10 Minutes Guide](docs/FIRST_PR.md)** and review the **[System Architecture Guide](docs/ARCHITECTURE.md)**!
 
 ### 1. Zero-Dependency Philosophy
 - **No `npm install`** and **no build step**. Everything runs directly in standard evergreen browsers.
@@ -114,6 +119,22 @@ python -m http.server 8000
 - **Keyboard & Screen Readers**: All interactive elements must have visible focus rings (`:focus-visible`) and descriptive `aria-label` / `aria-labelledby`.
 - **Reduced Motion**: Respect `prefers-reduced-motion: reduce` by disabling non-essential transitions and animations.
 - **Mobile Touch**: Ensure buttons have at least 44x44px touch targets on mobile devices.
+
+### 5. Visual Regression Testing (Dev-Only with Playwright)
+Pip OS includes isolated Playwright visual regression screenshot tests for desktop, tablet, and phone in both day and night themes. To preserve our zero-dependency philosophy, the visual test suite is isolated in `tests/` with its own `package.json` so the root application remains strictly build-free.
+
+```bash
+# 1. Navigate into tests directory and install dev dependencies:
+cd tests
+npm install
+npx playwright install chromium
+
+# 2. Run visual regression tests:
+npm test
+
+# 3. Update snapshots when making approved design updates:
+npm run test:update
+```
 
 ---
 

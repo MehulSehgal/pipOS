@@ -1,0 +1,18 @@
+{
+  "name": "pipos",
+  "version": "1.0.0",
+  "description": "Pip's Dream OS - Midnight Nursery Workbench",
+  "private": true,
+  "scripts": {
+    "test": "node --test js/*.test.js",
+    "build": "node --check sw.js && node scripts/check-links.js",
+    "lint": "npx eslint js/",
+    "lint:fix": "npx eslint js/ --fix",
+    "format": "npx prettier --write \"**/*.{js,json,css,html,md}\"",
+    "format:check": "npx prettier --check \"**/*.{js,json,css,html,md}\""
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
+  }
+}

@@ -8,32 +8,174 @@
   var toast = PIP.toast || function () {};
   var reduce = PIP.reduceMotion || { matches: false };
 
-  /* ---------- sparkle trail (mouse and pen only, off for reduced motion) ---------- */
+  /* ---------- batch particle canvas pool (zero DOM allocation, 60fps) ---------- */
   var GLYPHS = ['✦', '★', '✧', '·'];
   var COLORS = ['#a34063', '#ffb454', '#8b8fd9', '#ff9fc0'];
-  var live = 0, lastSpark = 0;
-    function isQuiet() {
-    return document.documentElement.getAttribute('data-quiet') === 'on';
+  var MAX_POOL = 64;
+  var particlePool = [];
+  var activeParticles = [];
+  var fxCanvas = null;
+  var fxCtx = null;
+  var isFxRunning = false;
+  var lastSpark = 0;
+
+  function createParticle() {
+    return {
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      glyph: '✦',
+      color: '#ffb454',
+      size: 14,
+      life: 0,
+      maxLife: 40,
+      alpha: 1.0,
+      rotation: 0,
+      vRot: 0
+    };
+  }
+
+  // Pre-populate pool
+  for (var pi = 0; pi < MAX_POOL; pi++) {
+    particlePool.push(createParticle());
+  }
+
+  function acquireParticle() {
+    return particlePool.pop() || createParticle();
+  }
+
+  function releaseParticle(p) {
+    if (particlePool.length < MAX_POOL * 2) {
+      particlePool.push(p);
+    }
+  }
+
+  function isQuiet() {
+    return typeof document !== 'undefined' &&
+           document.documentElement &&
+           document.documentElement.getAttribute('data-quiet') === 'on';
+  }
+
+  function spawnSparkle(x, y, opts) {
+    if ((reduce && reduce.matches) || isQuiet() || activeParticles.length >= MAX_POOL) return null;
+    opts = opts || {};
+    var p = acquireParticle();
+    p.x = typeof x === 'number' ? x : 0;
+    p.y = typeof y === 'number' ? y : 0;
+    p.vx = typeof opts.vx === 'number' ? opts.vx : (Math.random() * 2 - 1);
+    p.vy = typeof opts.vy === 'number' ? opts.vy : (0.5 + Math.random() * 1.5);
+    p.glyph = opts.glyph || GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    p.color = opts.color || COLORS[Math.floor(Math.random() * COLORS.length)];
+    p.size = typeof opts.size === 'number' ? opts.size : (11 + Math.random() * 8);
+    p.life = 0;
+    p.maxLife = typeof opts.maxLife === 'number' ? opts.maxLife : (36 + Math.floor(Math.random() * 16));
+    p.alpha = 1.0;
+    p.rotation = Math.random() * 6.28;
+    p.vRot = (Math.random() - 0.5) * 0.08;
+    activeParticles.push(p);
+
+    ensureFxLoop();
+    return p;
+  }
+
+  function updateParticles(dt) {
+    var step = typeof dt === 'number' ? dt : 1;
+    var surviving = [];
+    for (var i = 0; i < activeParticles.length; i++) {
+      var p = activeParticles[i];
+      p.life += step;
+      if (p.life >= p.maxLife) {
+        releaseParticle(p);
+      } else {
+        p.x += p.vx * step;
+        p.y += p.vy * step;
+        p.rotation += p.vRot * step;
+        p.alpha = Math.max(0, 1 - (p.life / p.maxLife));
+        surviving.push(p);
+      }
+    }
+    activeParticles = surviving;
+    return activeParticles.length;
+  }
+
+  function renderParticles(ctx, width, height) {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, width, height);
+    for (var i = 0; i < activeParticles.length; i++) {
+      var p = activeParticles[i];
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+      ctx.font = Math.round(p.size) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 4;
+      ctx.fillText(p.glyph, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  function setupFxCanvas() {
+    if (typeof document === 'undefined') return;
+    fxCanvas = document.getElementById('pipFxCanvas');
+    if (!fxCanvas) return;
+    fxCtx = fxCanvas.getContext && fxCanvas.getContext('2d');
+    resizeFxCanvas();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', resizeFxCanvas, { passive: true });
+    }
+  }
+
+  function resizeFxCanvas() {
+    if (!fxCanvas || !fxCtx || typeof window === 'undefined') return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    fxCanvas.width = Math.round(w * dpr);
+    fxCanvas.height = Math.round(h * dpr);
+    fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function ensureFxLoop() {
+    if (isFxRunning || !fxCtx || activeParticles.length === 0 || typeof window === 'undefined') return;
+    isFxRunning = true;
+    var last = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+    function fxFrame(now) {
+      if (!isFxRunning) return;
+      var dt = Math.min((now - last) / 16.67, 2.5);
+      last = now;
+
+      var alive = updateParticles(dt);
+      var w = (typeof window !== 'undefined') ? window.innerWidth : 800;
+      var h = (typeof window !== 'undefined') ? window.innerHeight : 600;
+      renderParticles(fxCtx, w, h);
+
+      if (alive > 0 && !(reduce && reduce.matches) && !isQuiet()) {
+        window.requestAnimationFrame(fxFrame);
+      } else {
+        if (fxCtx) fxCtx.clearRect(0, 0, w, h);
+        isFxRunning = false;
+      }
+    }
+
+    window.requestAnimationFrame(fxFrame);
   }
 
   function initSparkles() {
+    setupFxCanvas();
+    if (typeof document === 'undefined') return;
+
     document.addEventListener('pointermove', function (e) {
-            if (reduce.matches || isQuiet() || e.pointerType === 'touch') return;
-      var now = performance.now();
-      if (now - lastSpark < 36 || live > 28) return;
+      if ((reduce && reduce.matches) || isQuiet() || e.pointerType === 'touch') return;
+      var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      if (now - lastSpark < 32 || activeParticles.length >= MAX_POOL) return;
       lastSpark = now;
-      var s = document.createElement('span');
-      s.className = 'sparkle';
-      s.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-      s.style.left = e.clientX + 'px';
-      s.style.top = e.clientY + 'px';
-      s.style.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-      s.style.setProperty('--dx', (Math.random() * 30 - 15).toFixed(0) + 'px');
-      s.style.setProperty('--dy', (14 + Math.random() * 22).toFixed(0) + 'px');
-      s.style.fontSize = (10 + Math.random() * 12).toFixed(0) + 'px';
-      live++;
-      s.addEventListener('animationend', function () { s.remove(); live--; });
-      document.body.appendChild(s);
+      spawnSparkle(e.clientX, e.clientY);
     }, { passive: true });
   }
 
@@ -112,17 +254,64 @@
     }
     render();
     var inView = true;
-    PIP.watchVisible(el, function (v) { inView = v; });
-    (function tick() {
-      window.setTimeout(function () {
+    var odoTimer = 0;
+    function scheduleTick() {
+      window.clearTimeout(odoTimer);
+      if (document.hidden || !inView) {
+        odoTimer = 0;
+        return;
+      }
+      odoTimer = window.setTimeout(function () {
         if (inView && !document.hidden) {
           value += 1;
           store.set('dreams', value);
           render();
         }
-        tick();
+        odoTimer = 0;
+        scheduleTick();
       }, 5000 + Math.random() * 4000);
-    })();
+    }
+
+    PIP.watchVisible(el, function (v) {
+      inView = v;
+      if (v && !document.hidden && !odoTimer) scheduleTick();
+    });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && inView && !odoTimer) scheduleTick();
+      });
+    }
+
+    scheduleTick();
+  }
+
+  /* ---------- real visitor counter (#118) ---------- */
+  async function fetchRealVisitorCount() {
+    try {
+        const response = await fetch('https://api.countapi.xyz/hit/pipos-app/visits');
+        if (!response.ok) throw new Error('Counter service unavailable');
+        const data = await response.json();
+        return data.value;
+    } catch (error) {
+        // Fail silently and avoid unhandled console errors as required
+        console.debug('Real visitor counter skipped:', error.message);
+        return null;
+    }
+  }
+
+  async function initRealVisitorCounter() {
+    const container = document.getElementById('real-visitor-counter');
+    if (!container) return;
+
+    const count = await fetchRealVisitorCount();
+    if (count !== null) {
+        container.textContent = `Real Visitors: ${count.toLocaleString()}`;
+        container.style.display = 'block';
+    } else {
+        // Fail silently by hiding the element if the service is down
+        container.style.display = 'none';
+    }
   }
 
   /* ---------- wish wall (shared backend with local fallback) ---------- */
@@ -148,11 +337,25 @@
     return null;
   }
 
+  function getStore() {
+    if (typeof window !== 'undefined' && window.PIP && window.PIP.store) return window.PIP.store;
+    if (typeof global !== 'undefined' && global.PIP && global.PIP.store) return global.PIP.store;
+    return (PIP && PIP.store) ? PIP.store : store;
+  }
+
   function loadLocalWishes() {
     try {
-      var a = JSON.parse(store.get('wall', '[]'));
+      var s = getStore();
+      var a = JSON.parse(s.get('wall', '[]'));
       if (!Array.isArray(a)) return [];
-      return a.filter(function (x) { return x && typeof x.n === 'string' && typeof x.w === 'string'; }).slice(0, 30);
+      var valid = a.filter(function (x) { return x && typeof x.n === 'string' && typeof x.w === 'string'; });
+      // Guarantee reverse chronological order (newest first).
+      // If timestamps exist, sort descending so newest wishes stay at the top across reloads.
+      var hasTimestamps = valid.some(function (x) { return typeof x.t === 'number'; });
+      if (hasTimestamps) {
+        valid.sort(function (x, y) { return (y.t || 0) - (x.t || 0); });
+      }
+      return valid.slice(0, 30);
     } catch (e) { return []; }
   }
 
@@ -160,8 +363,12 @@
     try {
       var current = loadLocalWishes();
       current.unshift(item);
+      if (item && typeof item.t === 'number') {
+        current.sort(function (x, y) { return (y.t || 0) - (x.t || 0); });
+      }
       current = current.slice(0, 30);
-      store.set('wall', JSON.stringify(current));
+      var s = getStore();
+      s.set('wall', JSON.stringify(current));
     } catch (e) {}
   }
 
@@ -170,7 +377,8 @@
       var current = loadLocalWishes();
       if (typeof idx === 'number' && idx >= 0 && idx < current.length) {
         current.splice(idx, 1);
-        store.set('wall', JSON.stringify(current));
+        var s = getStore();
+        s.set('wall', JSON.stringify(current));
       }
       return current;
     } catch (e) { return []; }
@@ -187,6 +395,54 @@
     try {
       store.set('wall_rate', JSON.stringify(h.slice(-10)));
     } catch (e) {}
+  }
+
+  /* ---------- Starlight Reactions (pip:wish_reactions) ---------- */
+  var REACTIONS_KEY = 'wish_reactions';
+
+  function loadReactions() {
+    try {
+      var s = getStore();
+      var raw = s.get(REACTIONS_KEY, null);
+      if (raw === null || raw === undefined) {
+        raw = s.get('pip:' + REACTIONS_KEY, '{}');
+      }
+      var parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveReactions(map) {
+    try {
+      var s = getStore();
+      var data = JSON.stringify(map);
+      s.set(REACTIONS_KEY, data);
+      s.set('pip:' + REACTIONS_KEY, data);
+    } catch (e) {}
+  }
+
+  function getWishReactionKey(item, index) {
+    if (item && typeof item.t === 'number') return 'wish_' + item.t;
+    if (item && typeof item.w === 'string') return 'wish_' + item.w.slice(0, 30).replace(/\s+/g, '_');
+    return 'wish_' + (index || 0);
+  }
+
+  function getReactionCount(item, index) {
+    var map = loadReactions();
+    var key = getWishReactionKey(item, index);
+    return (typeof map[key] === 'number') ? map[key] : 0;
+  }
+
+  function incrementReactionCount(item, index) {
+    var map = loadReactions();
+    var key = getWishReactionKey(item, index);
+    var current = (typeof map[key] === 'number') ? map[key] : 0;
+    var next = current + 1;
+    map[key] = next;
+    saveReactions(map);
+    return next;
   }
 
   function formatWishesText(wishes) {
@@ -268,6 +524,34 @@
     li.appendChild(by);
 
     if (isOwn) {
+      var reactBtn = d.createElement('button');
+      reactBtn.type = 'button';
+      reactBtn.className = 'note-react';
+      var initialCount = getReactionCount(x, i);
+      reactBtn.textContent = 'Send Starlight ✨' + (initialCount > 0 ? ' (' + initialCount + ')' : '');
+      if (typeof reactBtn.setAttribute === 'function') {
+        reactBtn.setAttribute('aria-label', 'Send Starlight ✨' + (initialCount > 0 ? ' (' + initialCount + ')' : ''));
+        reactBtn.setAttribute('title', 'Send Starlight ✨');
+      }
+
+      if (typeof reactBtn.addEventListener === 'function') {
+        reactBtn.addEventListener('click', function (e) {
+          if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+          var newCount = incrementReactionCount(x, i);
+          reactBtn.textContent = 'Send Starlight ✨ (' + newCount + ')';
+          if (typeof reactBtn.setAttribute === 'function') {
+            reactBtn.setAttribute('aria-label', 'Send Starlight ✨ (' + newCount + ')');
+          }
+          if (typeof window !== 'undefined' && window.PIP && window.PIP.fx && typeof window.PIP.fx.confetti === 'function') {
+            window.PIP.fx.confetti(25);
+          } else if (typeof global !== 'undefined' && global.PIP && global.PIP.fx && typeof global.PIP.fx.confetti === 'function') {
+            global.PIP.fx.confetti(25);
+          } else if (typeof confetti === 'function') {
+            confetti(25);
+          }
+        });
+      }
+
       var delBtn = d.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'note-del';
@@ -318,6 +602,7 @@
           confirmBox.appendChild(btnRow);
 
           if (delBtn.style) delBtn.style.display = 'none';
+          if (reactBtn.style) reactBtn.style.display = 'none';
           li.appendChild(confirmBox);
 
           if (typeof yesBtn.focus === 'function') {
@@ -329,6 +614,7 @@
               confirmBox.parentNode.removeChild(confirmBox);
             }
             if (delBtn.style) delBtn.style.display = '';
+            if (reactBtn.style) reactBtn.style.display = '';
             if (typeof delBtn.focus === 'function') {
               delBtn.focus();
             }
@@ -355,6 +641,7 @@
         });
       }
 
+      li.appendChild(reactBtn);
       li.appendChild(delBtn);
     }
 
@@ -387,8 +674,8 @@
 
     function deleteWish(idx) {
       if (typeof idx !== 'number' || idx < 0 || idx >= activeWishes.length) return;
-      activeWishes.splice(idx, 1);
-      store.set('wall', JSON.stringify(activeWishes));
+      deleteLocalWish(idx);
+      activeWishes = loadLocalWishes();
       render();
       toast('Wish deleted.');
       if (PIP.audio && typeof PIP.audio.isOn === 'function' && PIP.audio.isOn()) {
@@ -418,6 +705,13 @@
           store.set('wall_remote_cache', JSON.stringify(remoteWishes));
           if (statusEl) statusEl.textContent = 'Shared wish wall • Synchronized live across dreamers.';
           render();
+          if (typeof wall.syncPendingWishes === 'function') {
+            wall.syncPendingWishes(backend, function (count) {
+              if (count > 0 && typeof toast === 'function') {
+                toast('✨ Synced ' + count + ' offline wish' + (count > 1 ? 'es' : '') + ' to Midnight Wall.');
+              }
+            });
+          }
         } else {
           // Backend offline or unreachable: fall back to cached remote or local
           try {
@@ -475,6 +769,7 @@
 
       var newWish = { n: validation.name, w: validation.wish, t: Date.now() };
       if (name.value.trim()) store.set('visitor', validation.name);
+      if (PIP.stickers) PIP.stickers.unlock('wish');
 
       wish.value = '';
       count.textContent = '0 / 120';
@@ -484,19 +779,27 @@
       // Optimistic or confirmed update
       if (backend && isConnected && wall) {
         wall.postWish(backend, newWish, function (success) {
-          activeWishes.unshift(newWish);
-          activeWishes = activeWishes.slice(0, 30);
-          store.set('wall', JSON.stringify(activeWishes));
+          saveLocalWish(newWish);
+          activeWishes = loadLocalWishes();
           render();
-          toast(success ? 'Pinned to the wall. Pip yawns happily.' : 'Pinned to your local wall (offline mode).');
+          if (success) {
+            toast('Pinned to the wall. Pip yawns happily.');
+          } else {
+            if (typeof wall.queuePendingWish === 'function') {
+              wall.queuePendingWish(newWish);
+            }
+            toast('Pinned to your local wall (queued for sync).');
+          }
         });
       } else {
         // Local mode or fallback
-        activeWishes.unshift(newWish);
-        activeWishes = activeWishes.slice(0, 30);
-        store.set('wall', JSON.stringify(activeWishes));
+        if (backend && wall && typeof wall.queuePendingWish === 'function') {
+          wall.queuePendingWish(newWish);
+        }
+        saveLocalWish(newWish);
+        activeWishes = loadLocalWishes();
         render();
-        toast('Pinned to the wall. Pip yawns happily.');
+        toast(backend ? 'Pinned to your local wall (queued for sync).' : 'Pinned to the wall. Pip yawns happily.');
       }
 
       if (PIP.audio && typeof PIP.audio.isOn === 'function' && PIP.audio.isOn()) {
@@ -514,7 +817,22 @@
     loadLocalWishes: loadLocalWishes,
     saveLocalWish: saveLocalWish,
     deleteLocalWish: deleteLocalWish,
-    init: function () { initSparkles(); initOdometer(); initWall(); }
+    particles: {
+      spawn: spawnSparkle,
+      update: updateParticles,
+      render: renderParticles,
+      getActiveCount: function () { return activeParticles.length; },
+      getPoolSize: function () { return particlePool.length; },
+      clear: function () {
+        while (activeParticles.length > 0) {
+          releaseParticle(activeParticles.pop());
+        }
+      }
+    },
+    getBackendConfig: getBackendConfig,
+    getReactionCount: getReactionCount,
+    incrementReactionCount: incrementReactionCount,
+    init: function () { initSparkles(); initOdometer(); initWall(); initRealVisitorCounter();}
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -525,6 +843,19 @@
       loadLocalWishes: loadLocalWishes,
       saveLocalWish: saveLocalWish,
       deleteLocalWish: deleteLocalWish,
+      spawnSparkle: spawnSparkle,
+      updateParticles: updateParticles,
+      renderParticles: renderParticles,
+      getActiveCount: function () { return activeParticles.length; },
+      getPoolSize: function () { return particlePool.length; },
+      clearParticles: function () {
+        while (activeParticles.length > 0) {
+          releaseParticle(activeParticles.pop());
+        }
+      },
+      getBackendConfig: getBackendConfig,
+      getReactionCount: getReactionCount,
+      incrementReactionCount: incrementReactionCount,
       ROT: ROT,
       SEEDS: SEEDS
     };

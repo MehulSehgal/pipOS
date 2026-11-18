@@ -29,16 +29,17 @@
   var coarse = mm('(pointer: coarse)');
 
   // one polite message at a time
-  var toastTimer = 0;
+  var toastTimer = 0, toastShowTimer = 0;
   function toast(msg, ms) {
     var el = $('#toast');
     if (!el) return;
+    window.clearTimeout(toastShowTimer);
+    window.clearTimeout(toastTimer);
     el.textContent = '';
-    window.setTimeout(function () {
+    toastShowTimer = window.setTimeout(function () {
       el.textContent = msg;
       el.classList.add('is-show');
     }, 15);
-    window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(function () { el.classList.remove('is-show'); }, (ms || 3200) + 15);
   }
 

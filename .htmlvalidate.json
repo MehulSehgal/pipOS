@@ -1,0 +1,16 @@
+{
+  "$schema": "https://html-validate.org/schemas/config.json",
+  "root": true,
+  "extends": ["html-validate:recommended"],
+  "rules": {
+    "no-inline-style": "off",
+    "svg-focusable": "off",
+    "require-sri": "off",
+    "doctype-style": "off",
+    "prefer-native-element": "off",
+    "element-required-attributes": "off",
+    "unique-landmark": "off",
+    "empty-heading": "off",
+    "aria-label-misuse": "off"
+  }
+}

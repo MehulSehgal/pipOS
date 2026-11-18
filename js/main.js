@@ -5,32 +5,63 @@
   var PIP = window.PIP;
   var $ = PIP.$, $$ = PIP.$$, store = PIP.store, clamp = PIP.clamp, reduce = PIP.reduceMotion;
   var audio = PIP.audio;
-  var tr = function (text) { return PIP.i18n && typeof PIP.i18n.t === 'function' ? PIP.i18n.t(text) : text; };
+  var tr = function (text, params) { return PIP.i18n && typeof PIP.i18n.t === 'function' ? PIP.i18n.t(text, params) : text; };
   var toast = function (text, ms) { PIP.toast(tr(text), ms); };
 
   function safe(name, fn) {
     try { fn(); } catch (e) { if (window.console) console.error('[pip] ' + name + ' failed:', e); }
   }
 
-  /* ---------- day / night / high contrast ---------- */
+  /* ---------- day / night / auto / high contrast ---------- */
   function initTheme() {
     var html = document.documentElement, btn = $('#themeBtn'), label = $('#themeLabel');
     var cBtn = $('#contrastBtn');
     var meta = document.querySelector('meta[name="theme-color"]');
-    var base = 'day';
+    var mode = 'auto'; // 'auto' | 'day' | 'night'
     var contrast = store.get('contrast', '') === 'on';
 
-    function apply(t) {
-      base = t;
-      store.set('theme', t);
-      html.setAttribute('data-theme', contrast ? 'contrast' : t);
+    function getLocalDayNight() {
+      var hour = new Date().getHours();
+      return (hour >= 6 && hour < 19) ? 'day' : 'night';
+    }
+
+    function resolveTheme(currentMode) {
+      if (currentMode === 'day') return 'day';
+      if (currentMode === 'night') return 'night';
+      var prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return getLocalDayNight() || (prefersDark ? 'night' : 'day');
+    }
+
+    function apply(newMode) {
+      mode = newMode;
+      store.set('themeMode', mode);
+      var resolved = resolveTheme(mode);
+      store.set('theme', resolved);
+
+      html.setAttribute('data-theme', contrast ? 'contrast' : resolved);
+      html.setAttribute('data-theme-mode', mode);
+
       if (btn) {
-        btn.setAttribute('aria-label', t === 'night' ? 'Night mode, switch to day mode' : 'Day mode, switch to night mode');
-        btn.classList.toggle('is-night', t === 'night');
+        var ariaText = '';
+        if (mode === 'auto') {
+          ariaText = 'Theme mode: Auto (currently ' + (resolved === 'night' ? 'Night' : 'Day') + '), switch to Day mode';
+        } else if (mode === 'day') {
+          ariaText = 'Day mode, switch to Night mode';
+        } else {
+          ariaText = 'Night mode, switch to Auto mode';
+        }
+
+        btn.setAttribute('aria-label', ariaText);
+        btn.classList.toggle('is-auto', mode === 'auto');
+        btn.classList.toggle('is-night', resolved === 'night');
       }
-      if (label) label.textContent = tr(t === 'night' ? 'Night' : 'Day');
-      if (meta) meta.setAttribute('content', contrast ? '#000000' : (t === 'night' ? '#1b1430' : '#fff8f1'));
-      if (PIP.pip) PIP.pip.setMood(t === 'night' ? 'night' : 'day');
+
+      if (label) {
+        label.textContent = (mode === 'auto') ? tr('Auto') : tr(mode === 'night' ? 'Night' : 'Day');
+      }
+
+      if (meta) meta.setAttribute('content', contrast ? '#000000' : (resolved === 'night' ? '#1b1430' : '#fff8f1'));
+      if (PIP.pip) PIP.pip.setMood(resolved === 'night' ? 'night' : 'day');
     }
 
     function paintContrast() {
@@ -39,27 +70,50 @@
       cBtn.setAttribute('aria-label', contrast ? 'High contrast on, turn it off' : 'High contrast off, turn it on');
     }
 
-    document.addEventListener('pip-language-change', function () { apply(base); });
-    var saved = store.get('theme', '');
-    if (saved !== 'day' && saved !== 'night') saved = '';
-    var prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    apply(saved || (prefersDark ? 'night' : 'day'));
+    document.addEventListener('pip-language-change', function () { apply(mode); });
+
+    var savedMode = store.get('themeMode', '');
+    if (savedMode !== 'auto' && savedMode !== 'day' && savedMode !== 'night') {
+      var legacySaved = store.get('theme', '');
+      savedMode = (legacySaved === 'day' || legacySaved === 'night') ? legacySaved : 'auto';
+    }
+
+    apply(savedMode);
     paintContrast();
 
+    // Check periodically for dawn/dusk transitions when in auto mode
+    window.setInterval(function () {
+      if (mode === 'auto') apply('auto');
+    }, 60000);
+
+    if (typeof window.matchMedia === 'function') {
+      try {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+          if (mode === 'auto') apply('auto');
+        });
+      } catch (e) {}
+    }
+
     if (btn) btn.addEventListener('click', function () {
-      var next = base === 'night' ? 'day' : 'night';
+      var nextMode = 'day';
+      if (mode === 'auto') nextMode = 'day';
+      else if (mode === 'day') nextMode = 'night';
+      else if (mode === 'night') nextMode = 'auto';
+
       if (contrast) { contrast = false; store.set('contrast', 'off'); paintContrast(); }
-      apply(next);
+      apply(nextMode);
+
       if (audio.isOn()) {
-        audio.note(audio.SCALE[next === 'night' ? 2 : 5], { dur: 1.1, gain: 0.14 });
-        audio.note(audio.SCALE[next === 'night' ? 0 : 7], { dur: 1.3, gain: 0.12, when: 0.14 });
+        var resolved = resolveTheme(nextMode);
+        audio.note(audio.SCALE[resolved === 'night' ? 2 : 5], { dur: 1.1, gain: 0.14 });
+        audio.note(audio.SCALE[resolved === 'night' ? 0 : 7], { dur: 1.3, gain: 0.12, when: 0.14 });
       }
     });
 
     if (cBtn) cBtn.addEventListener('click', function () {
       contrast = !contrast;
       store.set('contrast', contrast ? 'on' : 'off');
-      apply(base);
+      apply(mode);
       paintContrast();
     });
   }
@@ -97,11 +151,10 @@
       btn.setAttribute('aria-label', tr(on ? 'Turn sound off' : 'Turn sound on'));
       if (label) label.textContent = tr(on ? 'Sound on' : 'Sound off');
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.setAttribute('aria-label', on ? 'Sound on, turn sound off' : 'Sound off, turn sound on');
-      if (label) label.textContent = on ? 'Sound on' : 'Sound off';
     }
     paint(audio.state());
     audio.onChange(paint);
+    document.addEventListener('pip-language-change', function () { paint(audio.state()); });
     btn.addEventListener('click', function () { audio.toggle(); });
     if (audio.state() === '') {
       window.setTimeout(function () {
@@ -115,30 +168,131 @@
     var el = $('#clock');
     if (!el) return;
     function tick() {
-      el.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      if (!document.hidden) {
+        el.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
     }
     tick();
     window.setInterval(tick, 20000);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) tick();
+      });
+    }
   }
 
-  /* ---------- fold-up windows ---------- */
+  /* ---------- fold-up & minimized windows ---------- */
   function initFoldable() {
+    var minDock = $('#taskbarMinimized');
+    var maxZ = 10;
+
+    function bringToFront(win) {
+      if (!win) return;
+      maxZ++;
+      win.style.zIndex = maxZ;
+      $$('.win').forEach(function (w) { w.classList.remove('win-active'); });
+      win.classList.add('win-active');
+    }
+
     $$('.win[data-foldable]').forEach(function (win, n) {
       var bar = $('.win-bar', win), body = $('.win-body', win), title = $('.win-title', win);
       if (!bar || !body) return;
       if (!body.id) body.id = 'winbody' + n;
+      var b = $('.win-btn', bar);
+      if (!b) {
+        b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'win-btn';
+        b.setAttribute('aria-controls', body.id);
+        b.setAttribute('data-silent', '');
+        bar.appendChild(b);
+      }
+
+      win.addEventListener('pointerdown', function () { bringToFront(win); });
+      win.addEventListener('focusin', function () { bringToFront(win); });
+
+      var titleText = title ? title.textContent.trim() : 'window ' + n;
+      var minId = 'tb-min-' + (win.id || n);
+
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'win-btn';
       b.setAttribute('aria-controls', body.id);
       b.setAttribute('data-silent', '');
-      function paint() {
-        var open = !body.hidden;
-        b.setAttribute('aria-expanded', open ? 'true' : 'false');
-        b.setAttribute('aria-label', (open ? 'Fold up ' : 'Open ') + (title ? title.textContent : 'window'));
-        b.textContent = open ? '−' : '+';
+
+      function updateTaskbarDock(open) {
+        if (!minDock) return;
+        var existing = $('#' + minId, minDock);
+        if (!open) {
+          if (!existing) {
+            var minBtn = document.createElement('button');
+            minBtn.type = 'button';
+            minBtn.id = minId;
+            minBtn.className = 'tb-min-btn';
+            minBtn.setAttribute('aria-label', 'Restore ' + titleText);
+            var iconSpan = document.createElement('span');
+            iconSpan.className = 'tb-min-icon';
+            iconSpan.setAttribute('aria-hidden', 'true');
+            iconSpan.textContent = '🪟';
+            var titleSpan = document.createElement('span');
+            titleSpan.className = 'tb-min-title';
+            titleSpan.textContent = titleText;
+            minBtn.appendChild(iconSpan);
+            minBtn.appendChild(titleSpan);
+            minBtn.addEventListener('click', function () {
+              body.hidden = false;
+              win.classList.remove('is-folded');
+              paint();
+              bringToFront(win);
+              win.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              b.focus();
+            });
+            minDock.appendChild(minBtn);
+          }
+        } else {
+          if (existing) existing.remove();
+        }
       }
-      b.addEventListener('click', function () { body.hidden = !body.hidden; paint(); });
+
+      function paint() {
+        var open = !body.hidden && !win.classList.contains('is-minimized');
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        b.setAttribute('aria-label', (open ? 'Minimize ' : 'Restore ') + (title ? title.textContent : 'window'));
+        b.setAttribute('aria-label', (open ? 'Fold up ' : 'Open ') + titleText);
+        b.textContent = open ? '−' : '+';
+        win.classList.toggle('is-folded', !open);
+        updateTaskbarDock(open);
+      }
+      b.addEventListener('click', function (e) {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        var open = !body.hidden && !win.classList.contains('is-minimized');
+        if (open) {
+          if (PIP.taskbar && typeof PIP.taskbar.minimizeWindow === 'function') {
+            PIP.taskbar.minimizeWindow(win);
+          } else {
+            body.hidden = true;
+            win.classList.add('is-minimized');
+            paint();
+          }
+        } else {
+          if (PIP.taskbar && typeof PIP.taskbar.restoreWindow === 'function') {
+            PIP.taskbar.restoreWindow(win);
+          } else {
+            body.hidden = false;
+            win.classList.remove('is-minimized');
+            paint();
+          }
+        }
+      });
+
+      b.addEventListener('click', function () {
+        body.hidden = !body.hidden;
+        paint();
+        if (!body.hidden) {
+          bringToFront(win);
+        }
+      });
+
       bar.appendChild(b);
       paint();
     });
@@ -187,6 +341,10 @@
       if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
         e.preventDefault();
         toggleShortcuts(false);
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (PIP.flashlight && typeof PIP.flashlight.toggle === 'function') {
+          PIP.flashlight.toggle();
+        }
       } else if (e.key === 'Escape' && body && !body.hidden && win.contains(document.activeElement)) {
         var btn = $('.win-btn', win);
         if (btn) btn.click();
@@ -197,6 +355,21 @@
     if (iconLink) {
       iconLink.addEventListener('click', function () {
         toggleShortcuts(true);
+      });
+    }
+
+    var stickerLink = $('.desk-icons a[href="#stickers"]');
+    if (stickerLink) {
+      stickerLink.addEventListener('click', function () {
+        var win = $('#stickers');
+        if (win) {
+          var body = $('.win-body', win);
+          if (body && body.hidden) {
+            var btn = $('.win-btn', win);
+            if (btn) btn.click();
+            else body.hidden = false;
+          }
+        }
       });
     }
   }
@@ -240,7 +413,12 @@
     dots.forEach(function (d, i) {
       d.addEventListener('click', function () {
         setScene(i);
-        if (scenes[i] && scenes[i].focus) scenes[i].focus({ preventScroll: true });
+        if (scenes[i]) {
+          if (scenes[i].scrollIntoView) {
+            scenes[i].scrollIntoView({ behavior: reduce && reduce.matches ? 'auto' : 'smooth', block: 'nearest' });
+          }
+          if (scenes[i].focus) scenes[i].focus({ preventScroll: true });
+        }
       });
       d.addEventListener('keydown', function (e) {
         var nextDot = -1;
@@ -342,11 +520,20 @@
   safe('quiet', initQuiet);
   safe('clock', initClock);
   safe('foldable', initFoldable);
+  safe('wm', PIP.wm && PIP.wm.init);
   safe('shortcuts', initShortcuts);
+  safe('stickers', PIP.stickers && PIP.stickers.init);
   safe('fx', PIP.fx.init);
   safe('toys', PIP.toys.init);
+  safe('stars', PIP.stars && PIP.stars.init);
+  safe('rattle', PIP.rattle && PIP.rattle.init);
+  safe('drag', PIP.drag && PIP.drag.init);
+  safe('haptics', PIP.haptics && PIP.haptics.init);
+  safe('recorder', PIP.recorder && PIP.recorder.init);
   safe('story', initStory);
+  safe('dressup', PIP.dressup ? PIP.dressup.init : function () {});
   safe('navspy', initNavSpy);
+  safe('flashlight', PIP.flashlight ? PIP.flashlight.init : function () {});
   safe('trash', initTrash);
   safe('sw', initServiceWorker);
 })();

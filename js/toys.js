@@ -51,7 +51,14 @@
 
     function press(i) {
       flash(i);
-      if (audio.request()) audio.note(audio.SCALE[i], { dur: 1.6, gain: 0.24 });
+      if (audio.request()) {
+        audio.note(audio.SCALE[i], {
+          dur: 1.6,
+          gain: 0.24,
+          adsr: { a: 0.005, d: 0.15, s: 0.25, r: 0.9 },
+          bell: true
+        });
+      }
     }
 
     // number keys 1-8 while the lab is on screen (and you're not typing)
@@ -152,9 +159,77 @@
       endless.classList.add('is-on');
     });
 
+    var rainBtn = $('#ambientRainBtn'), cricketsBtn = $('#ambientCricketsBtn'), windBtn = $('#ambientWindBtn');
+    var ambSlider = $('#ambientSlider'), ambValue = $('#ambientValue');
+
+    if (rainBtn) {
+      rainBtn.addEventListener('click', function () {
+        if (audio.isRainActive && audio.isRainActive()) {
+          audio.stopRain();
+          rainBtn.setAttribute('aria-pressed', 'false');
+          rainBtn.classList.remove('is-on');
+        } else {
+          if (!audio.request()) return;
+          audio.startRain();
+          rainBtn.setAttribute('aria-pressed', 'true');
+          rainBtn.classList.add('is-on');
+        }
+      });
+    }
+
+    if (cricketsBtn) {
+      cricketsBtn.addEventListener('click', function () {
+        if (audio.isCricketsActive && audio.isCricketsActive()) {
+          audio.stopCrickets();
+          cricketsBtn.setAttribute('aria-pressed', 'false');
+          cricketsBtn.classList.remove('is-on');
+        } else {
+          if (!audio.request()) return;
+          audio.startCrickets();
+          cricketsBtn.setAttribute('aria-pressed', 'true');
+          cricketsBtn.classList.add('is-on');
+        }
+      });
+    }
+
+    if (windBtn) {
+      windBtn.addEventListener('click', function () {
+        if (audio.isWindActive && audio.isWindActive()) {
+          audio.stopWind();
+          windBtn.setAttribute('aria-pressed', 'false');
+          windBtn.classList.remove('is-on');
+        } else {
+          if (!audio.request()) return;
+          audio.startWind();
+          windBtn.setAttribute('aria-pressed', 'true');
+          windBtn.classList.add('is-on');
+        }
+      });
+    }
+
+    if (ambSlider && audio.getAmbientLevel) {
+      var initialAmb = audio.getAmbientLevel();
+      ambSlider.value = initialAmb;
+      if (ambValue) ambValue.textContent = Math.round(initialAmb * 100) + '%';
+      ambSlider.addEventListener('input', function () {
+        var v = parseFloat(ambSlider.value);
+        if (audio.setAmbientLevel) audio.setAmbientLevel(v);
+        var pct = Math.round(v * 100);
+        if (ambValue) ambValue.textContent = pct + '%';
+        ambSlider.setAttribute('aria-valuenow', pct);
+        ambSlider.setAttribute('aria-valuetext', pct + ' percent ambient volume');
+      });
+    }
+
     // muting from the taskbar stops everything the lab is doing
     audio.onChange(function (s) {
-      if (s !== 'on') { stopTune(); stopEndlessUi(); }
+      if (s !== 'on') {
+        stopTune();
+        stopEndlessUi();
+        if (rainBtn) { rainBtn.setAttribute('aria-pressed', 'false'); rainBtn.classList.remove('is-on'); }
+        if (cricketsBtn) { cricketsBtn.setAttribute('aria-pressed', 'false'); cricketsBtn.classList.remove('is-on'); }
+        if (windBtn) { windBtn.setAttribute('aria-pressed', 'false'); windBtn.classList.remove('is-on'); }
+      }
     });
   }
 
@@ -519,13 +594,7 @@
             toast('All five dreams found in the ' + curName + '! Pip is very proud.');
             room.classList.add('is-done');
             if (audio.isOn()) audio.giggle();
-
-            var totalAll = foundByRoom.nursery.length + foundByRoom.attic.length + foundByRoom.garden.length;
-            if (totalAll >= 15) {
-              window.setTimeout(function () {
-                toast('All fifteen dreams found across every room! Pip is overjoyed.');
-              }, 1800);
-            }
+            if (PIP.stickers) PIP.stickers.unlock('dreams5');
           }
         }
       });
@@ -546,8 +615,16 @@
     }
     PIP.watchVisible(room, function (v) {
       visible = v;
-      if (v && !raf) raf = window.requestAnimationFrame(drift);
+      if (v && !document.hidden && !raf) raf = window.requestAnimationFrame(drift);
     });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && visible && !raf) {
+          raf = window.requestAnimationFrame(drift);
+        }
+      });
+    }
 
     window.addEventListener('resize', function () { if (performance.now() - lastMove > 2500) { center(); paint(); } });
     syncRoomElements();
@@ -560,8 +637,12 @@
   /* =====================================================================
      3. RATTLE & BLOCKS (stacker)
      ===================================================================== */
+  var blocksRenderLeaderboard = null;
+  var blocksSyncBest = null;
+
   function initBlocks() {
     var cv = $('#blockCanvas'), btn = $('#blockDrop'), scoreEl = $('#blockScore');
+    var leaderboardListEl = $('#blockLeaderboardList'), comboEl = $('#blockCombo');
     if (!cv || !cv.getContext) return;
     var ctx = cv.getContext('2d');
     if (!ctx) return;
@@ -589,6 +670,47 @@
     var mode = MODES[modeKey], theme = THEMES[themeKey];
     function bestKey() { return modeKey === 'normal' ? 'best' : 'best-' + modeKey; }
     var best = parseInt(store.get(bestKey(), '0'), 10) || 0;
+
+    function getTopScores() {
+      try {
+        var raw = store.get('blockTopScores', '[]');
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(function (s) { return typeof s === 'number' && !isNaN(s) && s > 0; })
+                       .sort(function (a, b) { return b - a; })
+                       .slice(0, 5);
+        }
+      } catch (e) { /* ignore parse error */ }
+      return [];
+    }
+
+    function saveTopScore(score) {
+      if (!score || score <= 0) return;
+      var scores = getTopScores();
+      scores.push(score);
+      scores.sort(function (a, b) { return b - a; });
+      scores = scores.slice(0, 5);
+      store.set('blockTopScores', JSON.stringify(scores));
+      renderLeaderboard(scores);
+    }
+
+    function renderLeaderboard(scores) {
+      if (!leaderboardListEl) return;
+      var list = scores || getTopScores();
+      leaderboardListEl.innerHTML = '';
+      if (!list.length) {
+        var emptyLi = document.createElement('li');
+        emptyLi.className = 'block-leaderboard-empty';
+        emptyLi.textContent = 'No scores yet \u2014 start stacking!';
+        leaderboardListEl.appendChild(emptyLi);
+        return;
+      }
+      list.forEach(function (val, idx) {
+        var li = document.createElement('li');
+        li.textContent = '#' + (idx + 1) + ' \u2014 ' + val + ' pts';
+        leaderboardListEl.appendChild(li);
+      });
+    }
 
     var modeBtns = $$('[data-block-mode]'), themeBtns = $$('[data-block-theme]'), hintEl = $('#blockModeHint');
     function syncUI() {
@@ -623,6 +745,14 @@
       });
     });
     syncUI();
+    renderLeaderboard();
+    blocksRenderLeaderboard = renderLeaderboard;
+    blocksSyncBest = function (newBest) {
+      if (newBest > best) {
+        best = newBest;
+        hud();
+      }
+    };
 
     function rr(x, y, w, h, rad) {
       rad = Math.min(rad, w / 2, h / 2);
@@ -637,7 +767,11 @@
     function levelY(i) { return H - 10 - (i + 1) * BH; } // world y of block i's top
 
     function reset() {
-      st = { stack: [{ x: (W - mode.start) / 2, w: mode.start, i: 0 }], cur: null, chips: [], score: 0, over: false, cam: 0 };
+      st = { stack: [{ x: (W - mode.start) / 2, w: mode.start, i: 0 }], cur: null, chips: [], score: 0, combo: 0, over: false, cam: 0 };
+      if (comboEl) {
+        comboEl.hidden = true;
+        comboEl.textContent = '';
+      }
       spawn();
       hud();
       if (!raf && visible) loop();
@@ -648,7 +782,11 @@
       st.cur = { x: dir > 0 ? 0 : W - top.w, w: top.w, dir: dir, i: st.stack.length };
     }
     function hud() {
-      scoreEl.textContent = 'Height ' + st.score + ', best ' + best;
+      var txt = 'Height ' + st.score + ', best ' + best;
+      if (st.combo > 1) {
+        txt += ' (Combo x' + st.combo + '!)';
+      }
+      scoreEl.textContent = txt;
     }
 
     function drop() {
@@ -659,6 +797,9 @@
         st.chips.push({ x: c.x, w: c.w, y: levelY(c.i), vy: 0, i: c.i });
         st.cur = null;
         st.over = true;
+        saveTopScore(st.score);
+        st.combo = 0;
+        if (comboEl) comboEl.hidden = true;
         if (st.score > best) { best = st.score; store.set(bestKey(), best); }
         hud();
         toast('Wobbly! Your tower is ' + st.score + ' blocks tall.');
@@ -666,8 +807,17 @@
         return;
       }
       var perfect = Math.abs(c.x - top.x) < 5, nx = c.x, nw = c.w;
-      if (perfect) { nx = top.x; nw = top.w; }
-      else {
+      if (perfect) {
+        nx = top.x;
+        nw = top.w;
+        st.combo = (st.combo || 0) + 1;
+        if (comboEl) {
+          comboEl.hidden = false;
+          comboEl.textContent = (st.combo > 1 ? st.combo + 'x Combo! ✨' : 'Perfect! ✨');
+        }
+      } else {
+        st.combo = 0;
+        if (comboEl) comboEl.hidden = true;
         if (c.x < top.x) st.chips.push({ x: c.x, w: top.x - c.x, y: levelY(c.i), vy: 0, i: c.i });
         else st.chips.push({ x: top.x + top.w, w: c.x + c.w - (top.x + top.w), y: levelY(c.i), vy: 0, i: c.i });
         nx = left;
@@ -675,8 +825,10 @@
       }
       st.stack.push({ x: nx, w: nw, i: c.i });
       st.score += 1;
+      if (st.score >= 10 && PIP.stickers) PIP.stickers.unlock('blocks10');
       if (audio.isOn()) {
-        var f = audio.SCALE[st.score % 5] * (st.score % 10 < 5 ? 1 : 1.5);
+        var pitchMult = Math.pow(1.1, Math.min(st.combo, 8));
+        var f = audio.SCALE[st.score % 5] * (st.score % 10 < 5 ? 1 : 1.5) * pitchMult;
         audio.note(f, { dur: perfect ? 1.4 : 0.8, gain: perfect ? 0.22 : 0.15 });
         if (perfect) audio.note(f * 1.5, { dur: 1.2, gain: 0.1, when: 0.07 });
       }
@@ -725,8 +877,30 @@ var col = theme.pal[idx % theme.pal.length];
       ctx.clearRect(0, 0, W, H);
           if (theme.bg) { ctx.fillStyle = theme.bg; ctx.fillRect(0, 0, W, H); }
       // floor
-     ctx.fillStyle = theme.floor;
+      ctx.fillStyle = theme.floor;
       ctx.fillRect(0, H - 10 + st.cam, W, 10 + 400);
+
+      // Subtle dotted horizontal "Record Height" marker (bestMarker)
+      if (best > 0) {
+        var bestMarker = levelY(best) + st.cam;
+        if (bestMarker >= -20 && bestMarker <= H + 20) {
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = theme.dark ? 'rgba(255, 215, 0, 0.45)' : 'rgba(92, 64, 51, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(8, bestMarker);
+          ctx.lineTo(W - 8, bestMarker);
+          ctx.stroke();
+
+          ctx.fillStyle = theme.dark ? 'rgba(255, 215, 0, 0.85)' : 'rgba(92, 64, 51, 0.8)';
+          ctx.font = '500 11px Fredoka, system-ui, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText('Record Height: ' + best, W - 12, bestMarker - 3);
+          ctx.restore();
+        }
+      }
       st.stack.forEach(function (b, i) { block(b, levelY(i) + st.cam, i); });
       st.chips.forEach(function (p) { block(p, p.y + st.cam, p.i, 0.9); });
       if (st.cur) block(st.cur, levelY(st.cur.i) + st.cam, st.cur.i);
@@ -850,11 +1024,21 @@ var col = theme.pal[idx % theme.pal.length];
       }
 
       if (audio && typeof audio.isOn === 'function' && audio.isOn()) {
-        audio.note(audio.SCALE[(idx + 2) % audio.SCALE.length], { dur: 0.6, gain: 0.12 });
+        if (audio.pad) {
+          audio.pad(audio.SCALE[(idx + 2) % audio.SCALE.length], { dur: 1.8, gain: 0.12 });
+        } else {
+          audio.note(audio.SCALE[(idx + 2) % audio.SCALE.length], {
+            dur: 1.8,
+            gain: 0.12,
+            adsr: { a: 0.4, d: 0.3, s: 0.6, r: 0.8 },
+            bell: false
+          });
+        }
       }
     }
 
     function closeStory() {
+      var prevHouse = activeHouse;
       if (activeHouse) {
         activeHouse.classList.remove('is-active');
         activeHouse.setAttribute('aria-expanded', 'false');
@@ -863,6 +1047,9 @@ var col = theme.pal[idx % theme.pal.length];
       if (storyBox) {
         storyBox.setAttribute('hidden', '');
         storyBox.classList.remove('is-open');
+      }
+      if (prevHouse && typeof prevHouse.focus === 'function') {
+        prevHouse.focus({ preventScroll: true });
       }
     }
 
@@ -922,12 +1109,13 @@ var col = theme.pal[idx % theme.pal.length];
           h.classList.remove('is-lit');
         }
       });
-      if (!activeHouse) {
-        if (p <= 0.01) label.textContent = 'Waiting at the nursery window';
-        else if (p >= 0.995) label.textContent = 'All seven dreams delivered — click a house to read its story';
-        else if (passed >= 0) label.textContent = 'Delivered to ' + houses[passed].getAttribute('data-name');
-        else label.textContent = 'Taking off...';
+      if (p <= 0.01) label.textContent = 'Waiting at the nursery window';
+      else if (p >= 0.995) {
+        label.textContent = 'All seven dreams delivered';
+        if (PIP.stickers) PIP.stickers.unlock('route7');
       }
+      else if (passed >= 0) label.textContent = 'Delivered to ' + houses[passed].getAttribute('data-name');
+      else label.textContent = 'Taking off...';
     }
 
     function fromScroll() {
@@ -961,7 +1149,17 @@ var col = theme.pal[idx % theme.pal.length];
       })(t0);
       if (audio.isOn()) {
         [0, 2, 4, 3, 5, 4, 7].forEach(function (n, k) {
-          audio.note(audio.SCALE[n], { dur: 1.2, gain: 0.12, when: 0.4 + k * 0.7 });
+          if (audio.pad) {
+            audio.pad(audio.SCALE[n], { dur: 2.0, gain: 0.1, when: 0.4 + k * 0.7 });
+          } else {
+            audio.note(audio.SCALE[n], {
+              dur: 2.0,
+              gain: 0.1,
+              when: 0.4 + k * 0.7,
+              adsr: { a: 0.5, d: 0.4, s: 0.6, r: 0.9 },
+              bell: false
+            });
+          }
         });
       }
     });
@@ -979,7 +1177,52 @@ var col = theme.pal[idx % theme.pal.length];
     var total = pages.length;
     var current = 0;
 
+    var speechBtn = document.getElementById('storySpeechBtn');
+    var pauseBtn = document.getElementById('storyPauseBtn');
+    var stopBtn = document.getElementById('storyStopBtn');
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (speechBtn) speechBtn.hidden = false;
+      if (pauseBtn) { pauseBtn.hidden = true; pauseBtn.textContent = '⏸ Pause'; }
+      if (stopBtn) stopBtn.hidden = true;
+    }
+
+    if (speechBtn && 'speechSynthesis' in window) {
+      speechBtn.addEventListener('click', function () {
+        var activePage = pages[current];
+        if (!activePage) return;
+        var textToRead = (activePage.querySelector('h4')?.textContent || '') + '. ' + (activePage.querySelector('p')?.textContent || '');
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(textToRead);
+        utterance.rate = 0.9;
+        utterance.onstart = function () {
+          speechBtn.hidden = true;
+          if (pauseBtn) pauseBtn.hidden = false;
+          if (stopBtn) stopBtn.hidden = false;
+        };
+        utterance.onend = stopSpeech;
+        window.speechSynthesis.speak(utterance);
+      });
+    } else if (speechBtn) {
+      speechBtn.style.display = 'none';
+    }
+
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', function () {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+          pauseBtn.textContent = '⏸ Pause';
+        } else if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause();
+          pauseBtn.textContent = '▶ Resume';
+        }
+      });
+    }
+    if (stopBtn) stopBtn.addEventListener('click', stopSpeech);
+
     function renderPage(idx) {
+      stopSpeech(); 
       current = clamp(idx, 0, total - 1);
       pages.forEach(function (page, i) {
         var isCur = i === current;
@@ -1044,7 +1287,7 @@ var col = theme.pal[idx % theme.pal.length];
       }
       touchStartX = 0;
     }, { passive: true });
-
+     
     renderPage(0);
   }
 
@@ -1067,8 +1310,144 @@ var col = theme.pal[idx % theme.pal.length];
     }, '0px');
   }
 
+  function updateLeaderboardList(list, newScore, mode) {
+    var copy = Array.isArray(list) ? list.filter(function (entry) {
+      if (typeof entry === 'number' && !isNaN(entry) && entry > 0) return true;
+      return entry && typeof entry === 'object' && typeof entry.score === 'number' && entry.score > 0;
+    }).map(function (entry) {
+      if (typeof entry === 'number') return { score: Math.floor(entry), mode: 'normal', date: '' };
+      return {
+        score: Math.floor(entry.score),
+        mode: typeof entry.mode === 'string' ? entry.mode : 'normal',
+        date: typeof entry.date === 'string' ? entry.date : ''
+      };
+    }) : [];
+
+    if (newScore && typeof newScore === 'number' && newScore > 0) {
+      var d = new Date();
+      var dateStr = (d.getMonth() + 1) + '/' + d.getDate();
+      copy.push({
+        score: Math.floor(newScore),
+        mode: mode || 'normal',
+        date: dateStr
+      });
+    }
+    copy.sort(function (a, b) { return b.score - a.score; });
+    return copy.slice(0, 5);
+  }
+
+  function getComboPitchMultiplier(combo) {
+    if (!combo || combo <= 1) return 1;
+    return Math.pow(1.08, Math.min(combo - 1, 8));
+  }
+
+  function getBestMarkerY(best, cam) {
+    var H = 420, BH = 28;
+    return (H - 10 - (best + 1) * BH) + (cam || 0);
+  }
+
+  function getPIP() {
+    if (typeof window !== 'undefined' && window.PIP) return window.PIP;
+    if (typeof global !== 'undefined' && global.PIP) return global.PIP;
+    return PIP;
+  }
+
+  function getStore() {
+    var p = getPIP();
+    return (p && p.store) ? p.store : store;
+  }
+
+  function exportScores() {
+    var curStore = getStore();
+    var topScores = [];
+    try {
+      var raw = curStore.get('blockTopScores', '[]');
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        topScores = parsed.filter(function (s) { return typeof s === 'number' && !isNaN(s) && s > 0; })
+                          .sort(function (a, b) { return b - a; })
+                          .slice(0, 5);
+      }
+    } catch (e) {}
+
+    var best = parseInt(curStore.get('best', '0'), 10) || 0;
+    var mode = curStore.get('blockMode', 'normal') || 'normal';
+
+    var payload = {
+      game: 'rattle-and-blocks',
+      version: '1.0',
+      best: best,
+      mode: mode,
+      topScores: topScores,
+      exportedAt: new Date().toISOString()
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  function importScores(json) {
+    var curStore = getStore();
+    var data = json;
+    if (typeof json === 'string') {
+      try {
+        data = JSON.parse(json);
+      } catch (e) {
+        return false;
+      }
+    }
+    if (!data || typeof data !== 'object') return false;
+
+    var list = [];
+    if (Array.isArray(data)) {
+      list = data;
+    } else if (Array.isArray(data.topScores)) {
+      list = data.topScores;
+    } else if (Array.isArray(data.scores)) {
+      list = data.scores;
+    }
+
+    var validScores = list.map(function (val) {
+      if (typeof val === 'number') return val;
+      if (val && typeof val === 'object' && typeof val.score === 'number') return val.score;
+      return parseInt(val, 10);
+    }).filter(function (s) {
+      return typeof s === 'number' && !isNaN(s) && s > 0;
+    }).sort(function (a, b) {
+      return b - a;
+    }).slice(0, 5);
+
+    curStore.set('blockTopScores', JSON.stringify(validScores));
+
+    var importedBest = 0;
+    if (typeof data.best === 'number' && !isNaN(data.best) && data.best > 0) {
+      importedBest = data.best;
+    } else if (validScores.length > 0) {
+      importedBest = validScores[0];
+    }
+
+    if (importedBest > 0) {
+      var curBest = parseInt(curStore.get('best', '0'), 10) || 0;
+      if (importedBest > curBest) {
+        curStore.set('best', importedBest);
+      }
+    }
+
+    if (typeof blocksRenderLeaderboard === 'function') {
+      blocksRenderLeaderboard(validScores);
+    }
+    if (typeof blocksSyncBest === 'function' && importedBest > 0) {
+      blocksSyncBest(importedBest);
+    }
+
+    return true;
+  }
+
   PIP.toys = {
     HOUSE_STORIES: HOUSE_STORIES,
+    updateLeaderboardList: updateLeaderboardList,
+    getComboPitchMultiplier: getComboPitchMultiplier,
+    getBestMarkerY: getBestMarkerY,
+    exportScores: exportScores,
+    importScores: importScores,
     init: function () {
       initLab();
       initLights();
@@ -1081,7 +1460,12 @@ var col = theme.pal[idx % theme.pal.length];
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-      HOUSE_STORIES: HOUSE_STORIES
+      HOUSE_STORIES: HOUSE_STORIES,
+      updateLeaderboardList: updateLeaderboardList,
+      getComboPitchMultiplier: getComboPitchMultiplier,
+      getBestMarkerY: getBestMarkerY,
+      exportScores: exportScores,
+      importScores: importScores
     };
   }
 })();

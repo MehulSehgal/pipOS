@@ -111,6 +111,7 @@ test('js/toys.js implements house click, touch, and keyboard listeners with pass
   assert.match(toysSrc, /Enter|' '/, 'Must support Enter and Space keys to open house story');
   assert.match(toysSrc, /Escape/, 'Must support Escape key to close house story');
   assert.match(toysSrc, /houseStory/, 'Must control #houseStory panel visibility');
+  assert.match(toysSrc, /prevHouse\.focus/, 'Must restore focus to invoking house upon closing house story');
 });
 
 /* =========================================================================
