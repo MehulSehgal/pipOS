@@ -2793,3 +2793,6 @@ dialog.secret::backdrop {
     display: none;
   }
 }
+
+.language-btn .language-name,
+.language-btn .language-name [data-language-label] { display: inline !important; }
