@@ -1,17 +1,24 @@
 /* fx.js: sparkle trail, confetti, dream odometer, wish wall. */
 (function () {
   'use strict';
-  var PIP = window.PIP;
-  var $ = PIP.$, $$ = PIP.$$, store = PIP.store, toast = PIP.toast, reduce = PIP.reduceMotion;
+  var PIP = (typeof window !== 'undefined' && window.PIP) ? window.PIP : {};
+  var $ = PIP.$ || function () { return null; };
+  var $$ = PIP.$$ || function () { return []; };
+  var store = PIP.store || { get: function () { return ''; }, set: function () {} };
+  var toast = PIP.toast || function () {};
+  var reduce = PIP.reduceMotion || { matches: false };
 
   /* ---------- sparkle trail (mouse and pen only, off for reduced motion) ---------- */
   var GLYPHS = ['✦', '★', '✧', '·'];
   var COLORS = ['#a34063', '#ffb454', '#8b8fd9', '#ff9fc0'];
   var live = 0, lastSpark = 0;
+    function isQuiet() {
+    return document.documentElement.getAttribute('data-quiet') === 'on';
+  }
 
   function initSparkles() {
     document.addEventListener('pointermove', function (e) {
-      if (reduce.matches || e.pointerType === 'touch') return;
+            if (reduce.matches || isQuiet() || e.pointerType === 'touch') return;
       var now = performance.now();
       if (now - lastSpark < 36 || live > 28) return;
       lastSpark = now;
@@ -34,7 +41,7 @@
   var confettiRunning = false;
   function confetti(count) {
     var cv = $('#confetti');
-    if (!cv || confettiRunning || reduce.matches) return;
+        if (!cv || confettiRunning || reduce.matches || isQuiet()) return;
     var ctx = cv.getContext && cv.getContext('2d');
     if (!ctx) return;
     confettiRunning = true;
@@ -118,7 +125,7 @@
     })();
   }
 
-  /* ---------- wish wall (stored on this device) ---------- */
+  /* ---------- wish wall (shared backend with local fallback) ---------- */
   var SEEDS = [
     { n: 'Boo-ton', w: 'Pip fixed my hiccups with one note.' },
     { n: 'Mrs. Hoot', w: 'The nightlight is still warm at 4am.' },
@@ -126,62 +133,373 @@
   ];
   var ROT = [-2.2, 1.6, -1, 2.4, -1.8, 0.8];
 
-  function loadWishes() {
+  function getBackendConfig() {
+    if (typeof window !== 'undefined' && typeof window.PIP_WALL_BACKEND === 'object' && window.PIP_WALL_BACKEND !== null) {
+      return window.PIP_WALL_BACKEND;
+    }
+    var meta = document.querySelector('meta[name="pip-wall-backend"]');
+    if (meta && meta.content) {
+      try {
+        return JSON.parse(meta.content);
+      } catch (e) {
+        return { type: 'firebase', url: meta.content };
+      }
+    }
+    return null;
+  }
+
+  function loadLocalWishes() {
     try {
       var a = JSON.parse(store.get('wall', '[]'));
       if (!Array.isArray(a)) return [];
-      return a.filter(function (x) { return x && typeof x.n === 'string' && typeof x.w === 'string'; }).slice(-30);
+      return a.filter(function (x) { return x && typeof x.n === 'string' && typeof x.w === 'string'; }).slice(0, 30);
     } catch (e) { return []; }
+  }
+
+  function saveLocalWish(item) {
+    try {
+      var current = loadLocalWishes();
+      current.unshift(item);
+      current = current.slice(0, 30);
+      store.set('wall', JSON.stringify(current));
+    } catch (e) {}
+  }
+
+  function deleteLocalWish(idx) {
+    try {
+      var current = loadLocalWishes();
+      if (typeof idx === 'number' && idx >= 0 && idx < current.length) {
+        current.splice(idx, 1);
+        store.set('wall', JSON.stringify(current));
+      }
+      return current;
+    } catch (e) { return []; }
+  }
+
+  function loadRateHistory() {
+    try {
+      var h = JSON.parse(store.get('wall_rate', '[]'));
+      return Array.isArray(h) ? h : [];
+    } catch (e) { return []; }
+  }
+
+  function saveRateHistory(h) {
+    try {
+      store.set('wall_rate', JSON.stringify(h.slice(-10)));
+    } catch (e) {}
+  }
+
+  function formatWishesText(wishes) {
+    var list = Array.isArray(wishes) ? wishes : [];
+    var lines = [
+      "Pip's Wish Wall — My Wishes",
+      "===========================",
+      ""
+    ];
+    if (list.length === 0) {
+      lines.push("No wishes pinned yet.");
+    } else {
+      list.forEach(function (x, idx) {
+        var name = (x && x.n) ? x.n : 'A sleepy visitor';
+        var wish = (x && x.w) ? x.w : '';
+        var dateStr = '';
+        if (x && x.t) {
+          try {
+            dateStr = ' (pinned: ' + new Date(x.t).toISOString().replace('T', ' ').slice(0, 16) + ' UTC)';
+          } catch (e) {}
+        }
+        lines.push((idx + 1) + '. "' + wish + '"');
+        lines.push('   — ' + name + dateStr);
+        lines.push('');
+      });
+    }
+    lines.push('---------------------------');
+    lines.push('Exported from pipOS • https://hax.baby');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  function exportWishes(wishes, filename, doc) {
+    var text = formatWishesText(wishes);
+    var d = doc || (typeof document !== 'undefined' ? document : null);
+    var fname = filename || 'pip-wishes.txt';
+    if (d && typeof d.createElement === 'function') {
+      var blob = (typeof Blob !== 'undefined')
+        ? new Blob([text], { type: 'text/plain;charset=utf-8' })
+        : null;
+      var url = (blob && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function')
+        ? URL.createObjectURL(blob)
+        : 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+      var a = d.createElement('a');
+      a.href = url;
+      a.download = fname;
+      if (typeof a.setAttribute === 'function') a.setAttribute('download', fname);
+      if (a.style) a.style.display = 'none';
+      if (d.body && typeof d.body.appendChild === 'function') {
+        d.body.appendChild(a);
+        if (typeof a.click === 'function') a.click();
+        setTimeout(function () {
+          if (a.parentNode && typeof a.parentNode.removeChild === 'function') {
+            a.parentNode.removeChild(a);
+          }
+          if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function' && typeof url === 'string' && url.indexOf('blob:') === 0) {
+            URL.revokeObjectURL(url);
+          }
+        }, 200);
+      }
+    }
+    return text;
+  }
+
+  // Create a note DOM element strictly using textContent to prevent HTML injection (XSS)
+  function createNoteElement(x, i, doc, isOwn, onDelete) {
+    var d = doc || (typeof document !== 'undefined' ? document : null);
+    if (!d || typeof d.createElement !== 'function') return null;
+    var li = d.createElement('li');
+    li.className = 'note n' + ((i || 0) % 4);
+    if (li.style && typeof li.style.setProperty === 'function') {
+      li.style.setProperty('--rot', ROT[(i || 0) % ROT.length] + 'deg');
+    }
+    var p = d.createElement('p');
+    p.textContent = (x && typeof x.w === 'string') ? x.w : ''; // Strict textContent — prevents XSS
+    var by = d.createElement('span');
+    by.textContent = (x && typeof x.n === 'string') ? x.n : 'A sleepy visitor'; // Strict textContent — prevents XSS
+    li.appendChild(p);
+    li.appendChild(by);
+
+    if (isOwn) {
+      var delBtn = d.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'note-del';
+      if (typeof delBtn.setAttribute === 'function') {
+        delBtn.setAttribute('aria-label', 'Delete wish from ' + (x.n || 'visitor'));
+        delBtn.setAttribute('title', 'Delete wish');
+      }
+      delBtn.textContent = '✕';
+
+      if (typeof delBtn.addEventListener === 'function') {
+        delBtn.addEventListener('click', function (e) {
+          if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+          if (typeof li.querySelector === 'function' && li.querySelector('.note-confirm')) return;
+
+          var confirmBox = d.createElement('div');
+          confirmBox.className = 'note-confirm';
+          if (typeof confirmBox.setAttribute === 'function') {
+            confirmBox.setAttribute('role', 'group');
+            confirmBox.setAttribute('aria-label', 'Confirm wish deletion');
+          }
+
+          var confirmTxt = d.createElement('span');
+          confirmTxt.className = 'note-confirm-txt';
+          confirmTxt.textContent = 'Delete wish?';
+
+          var btnRow = d.createElement('div');
+          btnRow.className = 'note-confirm-btns';
+
+          var yesBtn = d.createElement('button');
+          yesBtn.type = 'button';
+          yesBtn.className = 'btn-confirm-yes';
+          yesBtn.textContent = 'Delete';
+          if (typeof yesBtn.setAttribute === 'function') {
+            yesBtn.setAttribute('aria-label', 'Confirm delete wish');
+          }
+
+          var noBtn = d.createElement('button');
+          noBtn.type = 'button';
+          noBtn.className = 'btn-confirm-no';
+          noBtn.textContent = 'Cancel';
+          if (typeof noBtn.setAttribute === 'function') {
+            noBtn.setAttribute('aria-label', 'Cancel deletion');
+          }
+
+          btnRow.appendChild(yesBtn);
+          btnRow.appendChild(noBtn);
+          confirmBox.appendChild(confirmTxt);
+          confirmBox.appendChild(btnRow);
+
+          if (delBtn.style) delBtn.style.display = 'none';
+          li.appendChild(confirmBox);
+
+          if (typeof yesBtn.focus === 'function') {
+            yesBtn.focus();
+          }
+
+          function dismiss() {
+            if (confirmBox.parentNode && typeof confirmBox.parentNode.removeChild === 'function') {
+              confirmBox.parentNode.removeChild(confirmBox);
+            }
+            if (delBtn.style) delBtn.style.display = '';
+            if (typeof delBtn.focus === 'function') {
+              delBtn.focus();
+            }
+          }
+
+          noBtn.addEventListener('click', function (ev) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            dismiss();
+          });
+
+          confirmBox.addEventListener('keydown', function (ev) {
+            if (ev && ev.key === 'Escape') {
+              if (typeof ev.stopPropagation === 'function') ev.stopPropagation();
+              dismiss();
+            }
+          });
+
+          yesBtn.addEventListener('click', function (ev) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            if (typeof onDelete === 'function') {
+              onDelete(x, i);
+            }
+          });
+        });
+      }
+
+      li.appendChild(delBtn);
+    }
+
+    return li;
   }
 
   function initWall() {
     var form = $('#gbForm'), list = $('#gbList');
     if (!form || !list) return;
     var wish = $('#gbWish'), name = $('#gbName'), count = $('#gbCount'), err = $('#gbError');
-    var mine = loadWishes();
+    var statusEl = $('#gbFine');
+    var exportBtn = $('#gbExport');
+    var wall = PIP.wall;
+    var backend = getBackendConfig();
+
+    var activeWishes = loadLocalWishes();
+    var isConnected = false;
 
     function render() {
       list.textContent = '';
-      var all = mine.slice().reverse().concat(SEEDS);
+      var all = activeWishes.concat(SEEDS);
       all.forEach(function (x, i) {
-        var li = document.createElement('li');
-        li.className = 'note n' + (i % 4);
-        li.style.setProperty('--rot', ROT[i % ROT.length] + 'deg');
-        var p = document.createElement('p');
-        p.textContent = x.w;
-        var by = document.createElement('span');
-        by.textContent = x.n;
-        li.appendChild(p);
-        li.appendChild(by);
-        list.appendChild(li);
+        var isOwn = (i < activeWishes.length);
+        var note = createNoteElement(x, i, document, isOwn, function (wishItem, wishIndex) {
+          deleteWish(wishIndex);
+        });
+        if (note) list.appendChild(note);
       });
     }
+
+    function deleteWish(idx) {
+      if (typeof idx !== 'number' || idx < 0 || idx >= activeWishes.length) return;
+      activeWishes.splice(idx, 1);
+      store.set('wall', JSON.stringify(activeWishes));
+      render();
+      toast('Wish deleted.');
+      if (PIP.audio && typeof PIP.audio.isOn === 'function' && PIP.audio.isOn()) {
+        PIP.audio.note(PIP.audio.SCALE[1], { dur: 0.3, gain: 0.1 });
+      }
+    }
+
     render();
+
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function () {
+        if (!activeWishes || activeWishes.length === 0) {
+          toast('No personal wishes to export yet.');
+          return;
+        }
+        exportWishes(activeWishes, 'pip-wishes.txt');
+        toast('Wishes exported to pip-wishes.txt!');
+      });
+    }
+
+    // If backend is configured, attempt retrieval
+    if (backend && wall) {
+      wall.fetchWishes(backend, function (remoteWishes) {
+        if (remoteWishes && Array.isArray(remoteWishes)) {
+          isConnected = true;
+          activeWishes = remoteWishes;
+          store.set('wall_remote_cache', JSON.stringify(remoteWishes));
+          if (statusEl) statusEl.textContent = 'Shared wish wall • Synchronized live across dreamers.';
+          render();
+        } else {
+          // Backend offline or unreachable: fall back to cached remote or local
+          try {
+            var cached = JSON.parse(store.get('wall_remote_cache', ''));
+            if (Array.isArray(cached) && cached.length) activeWishes = cached;
+          } catch (e) {}
+          if (statusEl) statusEl.textContent = 'Wishes are saved on this device only (offline mode).';
+          render();
+        }
+      });
+    } else {
+      if (statusEl) statusEl.textContent = 'Wishes are saved on this device only.';
+    }
 
     wish.addEventListener('input', function () {
       count.textContent = wish.value.length + ' / 120';
-      if (err.textContent) err.textContent = '';
+      count.setAttribute('aria-label', 'Character count: ' + wish.value.length + ' of 120');
+      if (err.textContent) {
+        err.textContent = '';
+        wish.removeAttribute('aria-invalid');
+      }
     });
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var w = wish.value.trim().slice(0, 120);
-      var n = name.value.trim().slice(0, 20) || 'A sleepy visitor';
-      if (!w) {
-        err.textContent = 'Write a wish first. Even a tiny one counts.';
+
+      // Input length validation & sanitization
+      var validation = wall
+        ? wall.validateWish(wish.value, name.value)
+        : { ok: !!wish.value.trim(), wish: wish.value.trim().slice(0, 120), name: name.value.trim().slice(0, 20) || 'A sleepy visitor' };
+
+      if (!validation.ok) {
+        err.textContent = validation.error || 'Write a wish first. Even a tiny one counts.';
+        wish.setAttribute('aria-invalid', 'true');
         wish.focus();
         return;
       }
-      mine.push({ n: n, w: w });
-      mine = mine.slice(-30);
-      store.set('wall', JSON.stringify(mine));
-      if (name.value.trim()) store.set('visitor', n);
+
+      // Rate limiting
+      var history = loadRateHistory();
+      if (wall) {
+        var check = wall.checkRateLimit(history);
+        if (!check.allowed) {
+          err.textContent = check.error;
+          wish.setAttribute('aria-invalid', 'true');
+          wish.focus();
+          return;
+        }
+        history = check.history;
+      }
+
+      // Passed validation and rate limit
+      history.push(Date.now());
+      saveRateHistory(history);
+
+      var newWish = { n: validation.name, w: validation.wish, t: Date.now() };
+      if (name.value.trim()) store.set('visitor', validation.name);
+
       wish.value = '';
       count.textContent = '0 / 120';
+      count.setAttribute('aria-label', 'Character count: 0 of 120');
       err.textContent = '';
-      render();
-      toast('Pinned to the wall. Pip yawns happily.');
-      if (PIP.audio.isOn()) {
+
+      // Optimistic or confirmed update
+      if (backend && isConnected && wall) {
+        wall.postWish(backend, newWish, function (success) {
+          activeWishes.unshift(newWish);
+          activeWishes = activeWishes.slice(0, 30);
+          store.set('wall', JSON.stringify(activeWishes));
+          render();
+          toast(success ? 'Pinned to the wall. Pip yawns happily.' : 'Pinned to your local wall (offline mode).');
+        });
+      } else {
+        // Local mode or fallback
+        activeWishes.unshift(newWish);
+        activeWishes = activeWishes.slice(0, 30);
+        store.set('wall', JSON.stringify(activeWishes));
+        render();
+        toast('Pinned to the wall. Pip yawns happily.');
+      }
+
+      if (PIP.audio && typeof PIP.audio.isOn === 'function' && PIP.audio.isOn()) {
         PIP.audio.note(PIP.audio.SCALE[4], { dur: 0.9, gain: 0.15 });
         PIP.audio.note(PIP.audio.SCALE[6], { dur: 1.1, gain: 0.13, when: 0.1 });
       }
@@ -190,6 +508,25 @@
 
   PIP.fx = {
     confetti: confetti,
+    createNoteElement: createNoteElement,
+    formatWishesText: formatWishesText,
+    exportWishes: exportWishes,
+    loadLocalWishes: loadLocalWishes,
+    saveLocalWish: saveLocalWish,
+    deleteLocalWish: deleteLocalWish,
     init: function () { initSparkles(); initOdometer(); initWall(); }
   };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      createNoteElement: createNoteElement,
+      formatWishesText: formatWishesText,
+      exportWishes: exportWishes,
+      loadLocalWishes: loadLocalWishes,
+      saveLocalWish: saveLocalWish,
+      deleteLocalWish: deleteLocalWish,
+      ROT: ROT,
+      SEEDS: SEEDS
+    };
+  }
 })();
