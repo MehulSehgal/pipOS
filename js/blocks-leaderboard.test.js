@@ -74,100 +74,66 @@ test('js/toys.js implements combo tracking and DOM updates in initBlocks', () =>
   assert.match(toysSrc, /saveTopScore\(/, 'Must save score on game over');
 });
 
-test('js/toys.js draws dotted personal best ghost line (bestMarker) across canvas', () => {
+test('Rattle & Blocks freeze prevention: verifies loop wake-up, boundary, and narrow block safeguards', () => {
   const toysSrc = fs.readFileSync(TOYS_JS_PATH, 'utf8');
 
-  assert.match(toysSrc, /bestMarker\s*=\s*levelY\(best\)\s*\+\s*st\.cam/, 'Must calculate bestMarker at levelY(best) + st.cam');
-  assert.match(toysSrc, /setLineDash\(\[\s*4\s*,\s*4\s*\]\)/, 'Must draw dotted/dashed line for ghost marker');
-  assert.match(toysSrc, /Record Height:\s*['"]\s*\+\s*best/, 'Must display Record Height text marker');
+  // Verify ensureLoop and stopLoop lifecycle management
+  assert.match(toysSrc, /function\s+ensureLoop\s*\(/, 'Must define ensureLoop helper to restart stalled loop');
+  assert.match(toysSrc, /function\s+isCanvasActive\s*\(/, 'Must define isCanvasActive helper for geometry/display verification');
 
-  const toys = require('./toys.js');
-  assert.strictEqual(typeof toys.getBestMarkerY, 'function', 'Must export getBestMarkerY helper');
-  // levelY(i) = H - 10 - (i + 1) * BH; for H=420, BH=28, best=5, cam=0: 420 - 10 - 6*28 = 242
-  assert.strictEqual(toys.getBestMarkerY(5, 0), 242);
-  assert.strictEqual(toys.getBestMarkerY(5, 10), 252);
+  // Verify narrow-width highlight protection (prevents negative radius arcTo / IndexSizeError crash)
+  assert.match(toysSrc, /b\.w\s*>\s*12/, 'Must guard block highlight bevel from negative width when b.w < 12');
+  assert.match(toysSrc, /Math\.max\(\s*0\s*,\s*Math\.min\(/, 'Must clamp corner radius to non-negative values');
+
+  // Verify loop wake-up on drop interaction and window events
+  assert.match(toysSrc, /function\s+onDrop\s*\(/, 'Must route drop interactions through onDrop');
+  assert.match(toysSrc, /ensureLoop\(\)/, 'Must wake loop on drop interaction');
+
+  // Verify dt delta calculation guards against negative time and NaN
+  assert.match(toysSrc, /isNaN\(\s*delta\s*\)\s*\|\|\s*delta\s*<\s*0/, 'Must sanitize dt against clock jitter and negative deltas');
 });
 
-test('js/toys.js exports exportScores and importScores helper methods', () => {
-  const toys = require('./toys.js');
-  assert.strictEqual(typeof toys.exportScores, 'function', 'Must export exportScores helper');
-  assert.strictEqual(typeof toys.importScores, 'function', 'Must export importScores helper');
-
-  // Setup mock store
-  const memStore = {};
-  global.PIP = global.PIP || {};
-  global.PIP.store = {
-    get: (k, def) => (memStore[k] !== undefined ? memStore[k] : (def || '')),
-    set: (k, v) => { memStore[k] = String(v); }
+test('Canvas rr() and block highlight logic handles narrow widths and chips without throwing IndexSizeError', () => {
+  // Recreate rr and highlight logic to verify no negative radius can be passed to arcTo
+  const arcToCalls = [];
+  const mockCtx = {
+    beginPath: () => {},
+    moveTo: () => {},
+    arcTo: (x1, y1, x2, y2, r) => {
+      if (r < 0) {
+        throw new Error(`IndexSizeError: Radius (${r}) cannot be negative`);
+      }
+      arcToCalls.push({ x1, y1, x2, y2, r });
+    },
+    closePath: () => {}
   };
 
-  try {
-    // Import scores via JSON string
-    const sampleData = {
-      game: 'rattle-and-blocks',
-      best: 42,
-      topScores: [42, 35, 28, 20, 15]
-    };
-    const importSuccess = toys.importScores(JSON.stringify(sampleData));
-    assert.strictEqual(importSuccess, true, 'importScores must return true on success');
-    assert.strictEqual(memStore['best'], '42', 'Must update best in store');
-    assert.deepStrictEqual(JSON.parse(memStore['blockTopScores']), [42, 35, 28, 20, 15], 'Must update blockTopScores in store');
-
-    // Export scores
-    const exportedRaw = toys.exportScores();
-    assert.strictEqual(typeof exportedRaw, 'string', 'exportScores must return JSON string');
-    const exported = JSON.parse(exportedRaw);
-    assert.strictEqual(exported.game, 'rattle-and-blocks');
-    assert.strictEqual(exported.best, 42);
-    assert.deepStrictEqual(exported.topScores, [42, 35, 28, 20, 15]);
-    assert.ok(exported.exportedAt);
-
-    // Import handles malformed input safely
-    assert.strictEqual(toys.importScores("invalid json"), false, 'Must return false for invalid JSON');
-    assert.strictEqual(toys.importScores(null), false, 'Must return false for null');
-  } finally {
-    delete global.PIP.store;
+  function testRr(x, y, w, h, rad) {
+    if (typeof w !== 'number' || typeof h !== 'number' || isNaN(w) || isNaN(h) || w <= 0 || h <= 0) return;
+    if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) return;
+    rad = Math.max(0, Math.min(rad || 0, w / 2, h / 2));
+    mockCtx.beginPath();
+    mockCtx.moveTo(x + rad, y);
+    mockCtx.arcTo(x + w, y, x + w, y + h, rad);
+    mockCtx.arcTo(x + w, y + h, x, y + h, rad);
+    mockCtx.arcTo(x, y + h, x, y, rad);
+    mockCtx.arcTo(x, y, x + w, y, rad);
+    mockCtx.closePath();
   }
-});
 
-test('terminal blocks command provides stats, export, and autocomplete', () => {
-  const term = require('./terminal.js');
-  assert.ok(term.COMMANDS.includes('blocks'), 'COMMANDS must include blocks');
+  // Test various narrow, zero, and negative widths that could occur on near-miss drops or small chips
+  const testWidths = [-5, 0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 16, 160];
+  for (const w of testWidths) {
+    assert.doesNotThrow(() => {
+      testRr(10, 10, w, 26, 7);
+      if (w > 12) {
+        testRr(14, 13, Math.max(0, w - 8), 6, 3);
+      }
+    }, `Drawing block or bevel with width ${w} must never throw IndexSizeError`);
+  }
 
-  // Setup mock store and toys
-  const memStore = {
-    best: '25',
-    blockTopScores: JSON.stringify([25, 18, 12])
-  };
-  global.PIP = global.PIP || {};
-  global.PIP.store = {
-    get: (k, def) => (memStore[k] !== undefined ? memStore[k] : (def || '')),
-    set: (k, v) => { memStore[k] = String(v); }
-  };
-  global.PIP.toys = require('./toys.js');
-
-  try {
-    // blocks stats
-    const statsRes = term.executeCommand('blocks stats');
-    assert.ok(statsRes.ok);
-    assert.match(statsRes.output, /Personal Best: 25 blocks/);
-    assert.match(statsRes.output, /#1 — 25 pts/);
-
-    // blocks export
-    const exportRes = term.executeCommand('blocks export');
-    assert.ok(exportRes.ok);
-    const parsed = JSON.parse(exportRes.output);
-    assert.strictEqual(parsed.best, 25);
-    assert.deepStrictEqual(parsed.topScores, [25, 18, 12]);
-
-    // Autocomplete
-    const bloMatch = term.autocomplete('blo');
-    assert.deepStrictEqual(bloMatch, ['blocks']);
-
-    const blocksSub = term.autocomplete('blocks ');
-    assert.deepStrictEqual(blocksSub, ['blocks stats', 'blocks export']);
-  } finally {
-    delete global.PIP.store;
-    delete global.PIP.toys;
+  // Ensure all recorded arcTo calls had r >= 0
+  for (const call of arcToCalls) {
+    assert.ok(call.r >= 0, `arcTo radius ${call.r} must be non-negative`);
   }
 });

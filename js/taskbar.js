@@ -63,6 +63,7 @@
   }
 
   function initTaskbar() {
+    initBattery();
     var startBtn = $('.start');
     var menu = $('#startMenu');
     if (!startBtn || !menu) return;
@@ -396,6 +397,62 @@
     updateTaskbarPills(d);
   }
 
+  /* =========================================================================
+     Taskbar Battery Power Gauge Indicator
+     ========================================================================= */
+  function formatBatteryText(level, charging) {
+    var pct = Math.round((typeof level === 'number' && !isNaN(level) ? level : 1) * 100);
+    pct = Math.max(0, Math.min(100, pct));
+    var icon = charging ? '⚡' : '🔋';
+    return icon + ' ' + pct + '%';
+  }
+
+  function initBattery(customDoc, customNav) {
+    var d = customDoc || (typeof document !== 'undefined' ? document : null);
+    var nav = customNav || (typeof navigator !== 'undefined' ? navigator : null);
+    if (!d || !nav) return null;
+
+    var el = d.getElementById ? d.getElementById('taskbarBattery') : (d.querySelector ? d.querySelector('#taskbarBattery, .tb-battery') : null);
+    if (!el) return null;
+
+    if (!('getBattery' in nav) || typeof nav.getBattery !== 'function') {
+      return null;
+    }
+
+    try {
+      var promise = nav.getBattery();
+      if (promise && typeof promise.then === 'function') {
+        return promise.then(function (battery) {
+          if (!battery) return el;
+          function update() {
+            var text = formatBatteryText(battery.level, battery.charging);
+            el.textContent = text;
+            if (el.setAttribute) {
+              var pct = Math.round((typeof battery.level === 'number' ? battery.level : 1) * 100);
+              el.setAttribute('aria-label', (battery.charging ? 'Charging: ' : 'Battery: ') + pct + '%');
+              el.setAttribute('title', (battery.charging ? 'Charging: ' : 'Battery: ') + pct + '%');
+            }
+            el.hidden = false;
+            if (el.removeAttribute) el.removeAttribute('hidden');
+          }
+
+          update();
+          if (typeof battery.addEventListener === 'function') {
+            battery.addEventListener('levelchange', update);
+            battery.addEventListener('chargingchange', update);
+          } else {
+            battery.onlevelchange = update;
+            battery.onchargingchange = update;
+          }
+          return el;
+        }).catch(function () { return el; });
+      }
+    } catch (e) {
+      // Safe fallback if blocked by sandbox or security policy
+    }
+    return el;
+  }
+
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initTaskbar);
@@ -418,7 +475,9 @@
     toggleWindow: toggleWindow,
     getFocusedWindow: getFocusedWindow,
     getZIndex: getZIndex,
-    updateTaskbar: updateTaskbarPills
+    updateTaskbar: updateTaskbarPills,
+    formatBatteryText: formatBatteryText,
+    initBattery: initBattery
   };
 
   PIP.taskbar = taskbarAPI;

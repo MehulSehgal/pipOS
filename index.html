@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://*.firebaseio.com https://*.supabase.co; object-src 'none'; base-uri 'self';">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://*.firebaseio.com https://*.supabase.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests;">
   <title>Pip, Junior Dream Engineer | Midnight Nursery</title>
   <meta name="description"
     content="Pip is a baby with a skull face who engineers dreams, lullabies and nightlights at the Midnight Nursery. Poke around Pip's portfolio.">
@@ -51,7 +51,7 @@
   <a class="skip" href="#main">Skip to content</a>
 
   <!-- shared star symbol -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <svg width="0" height="0" class="sr-hidden-svg" aria-hidden="true" focusable="false">
     <symbol id="star" viewBox="-10 -10 20 20">
       <path d="M0-9 2.6-2.8 9-2.4 4 1.7 5.6 8 0 4.5-5.6 8-4 1.7-9-2.4-2.6-2.8Z" />
     </symbol>
@@ -118,6 +118,7 @@
         </svg>
         <span id="themeLabel">Day</span>
       </button>
+      <span class="tb-battery" id="taskbarBattery" aria-label="Battery Status" hidden></span>
       <span class="clock" id="clock" aria-hidden="true"></span>
     </div>
   </header>
@@ -711,12 +712,6 @@
                 <span class="block-combo" id="blockCombo" aria-live="polite" hidden></span>
               </div>
             </div>
-            <div class="block-leaderboard" id="blockLeaderboardWrap">
-              <h4 class="lb-title">Top 5 Builders</h4>
-              <ol class="lb-list" id="blockLeaderboard" aria-label="Top 5 stacking heights">
-                <li class="lb-empty">Stack your first tower to join the nursery records!</li>
-              </ol>
-            </div>
             <div class="block-leaderboard" id="blockScores">
               <span class="block-leaderboard-title">Top 5 Scores</span>
               <ol class="block-leaderboard-list" id="blockLeaderboardList" aria-label="Top 5 stacking heights">
@@ -849,6 +844,7 @@
                   </g>
                 </g>
               </svg>
+              <canvas id="routeCanvas" class="route-canvas" width="600" height="290" aria-hidden="true"></canvas>
               <div id="houseStory" class="house-story house-tooltip" role="region" aria-live="polite" hidden>
                 <div class="house-story-head">
                   <h4 id="houseStoryTitle" class="house-story-title"></h4>
@@ -1046,7 +1042,6 @@
               </div>
             </div>
             <div class="stars-canvas-wrap">
-              <canvas id="starsCanvas" width="300" height="380" aria-label="Catch the Falling Stars canvas game" tabindex="0"></canvas>
               <canvas id="starsCanvas" width="300" height="380" aria-label="Catch the Falling Stars canvas game"
                 tabindex="0"></canvas>
               <div id="starsGameOver" class="stars-overlay hidden" hidden>
@@ -1596,6 +1591,45 @@
             </div>
           </div>
         </article>
+
+        <!-- Real-Time FPS Telemetry HUD & Battery Saver Power Mode -->
+        <article id="perfWin" class="win w-perf" data-foldable aria-labelledby="perfTitle">
+          <div class="win-bar">
+            <h3 class="win-title" id="perfTitle">pip-perf.exe</h3>
+            <span class="perf-badge" aria-hidden="true">Telemetry &amp; Eco</span>
+          </div>
+          <div class="win-body">
+            <div class="proj-head">
+              <p>Pip's Real-Time Performance Telemetry &amp; Battery Saver. Measure frame rates, monitor frame times, and enable bedtime eco mode to conserve battery.</p>
+            </div>
+
+            <!-- Vitals Grid -->
+            <div class="perf-vitals-grid" role="region" aria-label="System performance metrics">
+              <div class="perf-vital-card">
+                <span class="perf-card-lbl">Current FPS</span>
+                <span id="perfFpsVal" class="perf-card-val">60 FPS</span>
+              </div>
+              <div class="perf-vital-card">
+                <span class="perf-card-lbl">Rolling Avg</span>
+                <span id="perfAvgVal" class="perf-card-val">60 FPS</span>
+              </div>
+              <div class="perf-vital-card">
+                <span class="perf-card-lbl">Frame Delta</span>
+                <span id="perfMsVal" class="perf-card-val">16.6 ms</span>
+              </div>
+              <div class="perf-vital-card">
+                <span class="perf-card-lbl">Power Source</span>
+                <span id="perfBatteryVal" class="perf-card-val">AC Powered</span>
+              </div>
+            </div>
+
+            <!-- Performance Actions -->
+            <div class="perf-actions">
+              <button type="button" class="btn btn-tiny" id="perfEcoBtn" aria-pressed="false">⚡ Eco Mode: OFF</button>
+              <button type="button" class="btn btn-tiny btn-primary" id="perfToggleHudBtn">📊 Toggle Floating HUD</button>
+            </div>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -1878,6 +1912,7 @@
       <button type="button" id="pwaInstallBtn" class="btn btn-primary">Install</button>
       <button type="button" id="pwaDismissBtn" class="btn" aria-label="Dismiss install prompt">✕</button>
     </div>
+  </div>
   <!-- Desktop Right-Click Context Menu -->
   <menu id="desktopContextMenu" class="desktop-context-menu" hidden role="menu" aria-label="Desktop Context Menu" tabindex="-1">
     <li role="none"><button type="button" id="cmArrange" class="cm-item" role="menuitem">📐 Arrange Icons to Grid</button></li>
@@ -1897,6 +1932,18 @@
   <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- Floating FPS Telemetry HUD Widget -->
+  <aside id="perfHud" class="perf-hud is-hidden" aria-label="FPS Telemetry HUD" inert>
+    <div class="perf-hud-head">
+      <span class="perf-hud-title">⚡ Telemetry</span>
+      <button type="button" class="btn-icon-tiny" id="perfCloseHudBtn" aria-label="Close telemetry HUD">✕</button>
+    </div>
+    <div class="perf-hud-body">
+      <div id="perfHudFps" class="perf-hud-fps">60 FPS</div>
+      <div class="perf-hud-label">PipOS Render Loop</div>
+    </div>
+  </aside>
+
   <script src="js/util.js" defer></script>
   <script src="js/security.js" defer></script>
   <script src="js/vault.js" defer></script>
@@ -1907,6 +1954,26 @@
   <script src="js/stickers.js" defer></script>
   <script src="js/pip.js" defer></script>
   <script src="js/toys.js" defer></script>
+  <script src="js/rattle.js" defer></script>
+  <script src="js/vfs.js" defer></script>
+  <script src="js/recorder.js" defer></script>
+  <script src="js/terminal.js" defer></script>
+  <script src="js/stars.js" defer></script>
+  <script src="js/taskbar.js" defer></script>
+  <script src="js/task-switcher.js" defer></script>
+  <script src="js/monitor.js" defer></script>
+  <script src="js/notes.js" defer></script>
+  <script src="js/pwa.js" defer></script>
+  <script src="js/desktop.js" defer></script>
+  <script src="js/synth.js" defer></script>
+  <script src="js/window-manager.js" defer></script>
+  <script src="js/calc.js" defer></script>
+  <script src="js/dressup.js" defer></script>
+  <script src="js/flashlight.js" defer></script>
+  <script src="js/drag.js" defer></script>
+  <script src="js/haptics.js" defer></script>
+  <script src="js/constellations.js" defer></script>
+  <script src="js/perf.js" defer></script>
   <script src="js/main.js" defer></script>
   <script src="js/i18n.js" defer></script>
 </body>

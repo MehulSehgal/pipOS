@@ -1,4 +1,4 @@
-﻿/* ===================================================================   Pip's Dream OS - Stylesheet
+/* ===================================================================   Pip's Dream OS - Stylesheet
    Palette from haX.baby: cream #fff8f1, berry #a34063, cocoa #5c4033.
    Architecture & Tokens Guide: docs/CSS.md
 
@@ -216,6 +216,19 @@ code { font-size: 0.9em; background: var(--blush); padding: 0.05rem 0.3rem; bord
 .tb-btn.is-night .sun, .tb-btn.is-night .rays { display: none; }
 .tb-btn.is-hint { animation: ring 2.2s ease-in-out infinite; }
 .clock { font: 600 0.9rem var(--f-ui); min-width: 4.6rem; text-align: right; }
+.tb-battery {
+  display: inline-flex;
+  align-items: center;
+  font: 600 0.85rem var(--f-ui);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  color: inherit;
+  white-space: nowrap;
+  user-select: none;
+}
+.tb-battery[hidden], .tb-battery:empty {
+  display: none;
+}
 
 .taskbar-running {
   display: flex;
@@ -960,6 +973,15 @@ html.js .growth-chart.is-visible .growth-fill { width: calc(var(--progress, 0) *
   position: relative;
   width: 100%;
   margin-top: 0.4rem;
+}
+
+.route-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .route-svg {
@@ -3140,7 +3162,8 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
   color: #5ce68b;
 }
 
-/* ==========================================================================
+/* 
+==================================================================
    PWA 2.0 Install Banner
    ========================================================================== */
 .pwa-install-banner {
@@ -3991,6 +4014,57 @@ dialog.secret::backdrop { background: rgba(40, 24, 40, 0.55); }
 [data-theme="night"] .sky-lore {
   color: #fff;
   background: rgba(243, 181, 98, 0.18);
+=======
+/* Zero-inline utility classes */
+.sr-hidden-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* -------------------------------------------------------------
+ * Real-Time FPS Telemetry HUD & Battery Saver (pip-perf.exe)
+ * ----------------------------------------------------------- */
+.w-perf {
+  min-width: 320px;
+}
+
+.perf-badge {
+  font-size: 0.75rem;
+  background: rgba(16, 185, 129, 0.25);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+[data-theme="night"] .perf-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.perf-vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.perf-vital-card {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perf-card-lbl {
+  font-size: 0.75rem;
+  color: var(--muted, #666);
 }
 
 .language-btn .language-name,

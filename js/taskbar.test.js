@@ -397,3 +397,96 @@ test('Window Manager: toggleWindow alternates between minimize and focus/restore
   assert.strictEqual(win.classList.contains('is-minimized'), false);
   assert.strictEqual(win.classList.contains('is-focused'), true);
 });
+
+/* =========================================================================
+   Taskbar Battery Power Gauge Indicator Tests
+   ========================================================================= */
+test('index.html contains #taskbarBattery indicator inside header.taskbar', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+
+  // Verify header.taskbar exists and contains #taskbarBattery
+  const taskbarMatch = html.match(/<header\s+class=["'][^"']*\btaskbar\b[^"']*["']>([\s\S]*?)<\/header>/i);
+  assert.ok(taskbarMatch, 'index.html must have a header.taskbar');
+
+  assert.match(taskbarMatch[1], /<span[^>]*id=["']taskbarBattery["'][^>]*>/i,
+    'header.taskbar must contain #taskbarBattery');
+  assert.match(taskbarMatch[1], /class=["'][^"']*\btb-battery\b[^"']*["']/i,
+    '#taskbarBattery must have class tb-battery');
+  assert.match(taskbarMatch[1], /aria-label=["']Battery Status["']/i,
+    '#taskbarBattery must declare aria-label="Battery Status"');
+});
+
+test('css/style.css defines styling for .tb-battery', () => {
+  const css = fs.readFileSync(CSS_PATH, 'utf8');
+  assert.match(css, /\.tb-battery\s*\{/i, 'style.css must have .tb-battery rule');
+  assert.match(css, /\.tb-battery\[hidden\]/i, 'style.css must hide .tb-battery when [hidden]');
+});
+
+test('taskbar.formatBatteryText correctly formats charging and discharging levels', () => {
+  const taskbar = require(TASKBAR_JS_PATH);
+  assert.strictEqual(typeof taskbar.formatBatteryText, 'function', 'formatBatteryText must be exported');
+
+  assert.strictEqual(taskbar.formatBatteryText(0.85, true), '⚡ 85%');
+  assert.strictEqual(taskbar.formatBatteryText(0.42, false), '🔋 42%');
+  assert.strictEqual(taskbar.formatBatteryText(1.0, true), '⚡ 100%');
+  assert.strictEqual(taskbar.formatBatteryText(0.05, false), '🔋 5%');
+  assert.strictEqual(taskbar.formatBatteryText(0, false), '🔋 0%');
+});
+
+test('taskbar.initBattery hooks navigator.getBattery and updates text on levelchange and chargingchange', async () => {
+  const taskbar = require(TASKBAR_JS_PATH);
+  const mockDoc = createMockWindowManagerDocument();
+
+  const batteryEl = mockDoc.createElement('SPAN');
+  batteryEl.className = 'tb-battery';
+  batteryEl.setAttribute('id', 'taskbarBattery');
+  batteryEl.hidden = true;
+  mockDoc.body.appendChild(batteryEl);
+
+  const listeners = {};
+  const mockBattery = {
+    level: 0.85,
+    charging: true,
+    addEventListener: (event, handler) => {
+      listeners[event] = listeners[event] || [];
+      listeners[event].push(handler);
+    }
+  };
+
+  const mockNav = {
+    getBattery: () => Promise.resolve(mockBattery)
+  };
+
+  await taskbar.initBattery(mockDoc, mockNav);
+
+  // Initial render when battery resolves
+  assert.strictEqual(batteryEl.textContent, '⚡ 85%');
+  assert.strictEqual(batteryEl.hidden, false);
+  assert.strictEqual(batteryEl.getAttribute('aria-label'), 'Charging: 85%');
+
+  // Trigger discharging change: charging becomes false, level drops to 42%
+  mockBattery.charging = false;
+  mockBattery.level = 0.42;
+  (listeners.chargingchange || []).forEach(fn => fn());
+  (listeners.levelchange || []).forEach(fn => fn());
+
+  assert.strictEqual(batteryEl.textContent, '🔋 42%');
+  assert.strictEqual(batteryEl.getAttribute('aria-label'), 'Battery: 42%');
+});
+
+test('taskbar.initBattery gracefully handles navigator without getBattery', async () => {
+  const taskbar = require(TASKBAR_JS_PATH);
+  const mockDoc = createMockWindowManagerDocument();
+
+  const batteryEl = mockDoc.createElement('SPAN');
+  batteryEl.setAttribute('id', 'taskbarBattery');
+  batteryEl.hidden = true;
+  mockDoc.body.appendChild(batteryEl);
+
+  const mockNavWithoutBattery = {};
+
+  const result = taskbar.initBattery(mockDoc, mockNavWithoutBattery);
+  assert.strictEqual(result, null);
+  assert.strictEqual(batteryEl.hidden, true);
+  assert.strictEqual(batteryEl.textContent, '');
+});

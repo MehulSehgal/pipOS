@@ -294,8 +294,154 @@
       stars_count: '{count} तारा पकड़ा गया | {count} तारे पकड़े गए',
       wishes_count: '{count} ख्वाहिश जोड़ी गई | {count} ख्वाहिशें जोड़ी गईं',
       page_indicator: 'पृष्ठ {current} का {total}'
+    },
+    es: {
+      nav_pip: 'Pip',
+      nav_work: 'Proyectos',
+      nav_story: 'Historia',
+      nav_wall: 'Muro',
+      hero_title: 'Construyo los sueños en los que te quedas dormido.',
+      hero_lede: 'Ingeniero de Sueños Junior en la Guardería de Medianoche. Canciones de cuna, luces nocturnas y entregas en tejados antes del amanecer.',
+      hero_say_hi: 'Saluda a Pip',
+      hero_see_work: 'Mira lo que hizo Pip',
+      hero_fine: 'Los ojos de Pip te siguen. Activa el interruptor de sol y luna para ver la magia.',
+      hero_greeting: '¡Hola! Soy Pip.',
+      work_title: 'Cosas que hizo Pip',
+      work_desc: 'Cinco juguetes del banco de trabajo de Medianoche. Todos son jugables.',
+      lab_desc: 'Una caja de música a la que Pip dio cuerda al revés. Toca las teclas del 1 al 8.',
+      lab_wind: 'Dar cuerda a la caja',
+      lab_endless: 'Canción infinita',
+      lights_desc: 'Elige una linterna y barre la oscura guardería. Cinco pequeños sueños se esconden allí.',
+      blocks_desc: 'Apila los bloques tan alto como la hora de dormir. Toca o presiona Espacio.',
+      blocks_btn: 'Soltar bloque',
+      route_desc: 'Haz scroll para volar sobre los tejados o pulsa el botón.',
+      route_btn: 'Volar la ruta',
+      story_h1: 'El hipo',
+      story_p1: 'Nadie sabe de dónde vino Pip. La enfermera encontró una cesta de ropa, un gorro de dormir gigante y un hipo muy ruidoso. Dentro: Pip sonriendo a la luna.',
+      story_h2: 'Silencio prohibido',
+      story_p2: 'La Guardería de Medianoche tenía una regla: cada fantasma debe dormirse con sonido. Pip vio el silencio y decidió solucionarlo.',
+      story_h3: 'La primera canción',
+      story_p3: 'Pip dio cuerda a una caja vieja al revés. Salieron cinco notas torpes. Once fantasmas bostezaron juntos. Nadie volvió a desvelarse.',
+      story_h4: 'El turno de noche',
+      story_p4: 'Ahora Pip es Ingeniero de Sueños: canciones en el laboratorio, luces en la repisa y sueños entregados por las nubes. Deja la ventana entreabierta.',
+      wall_title: 'El muro de los deseos',
+      wall_desc: 'Deja un deseo a Pip. Pip los lee todos bostezando.',
+      wall_name_label: 'Tu nombre',
+      wall_wish_label: 'Tu deseo',
+      wall_submit: 'Fijar mi deseo',
+      wall_fine: 'Los deseos se guardan únicamente en este dispositivo.',
+      odo_title: 'Sueños entregados esta noche',
+      odo_fine: 'La cuenta propia de Pip, aumentando mientras lees.',
+      Day: 'Día',
+      Night: 'Noche',
+      'Sound on': 'Sonido activado',
+      'Sound off': 'Sonido desactivado',
+      'Turn sound on': 'Activar sonido',
+      'Turn sound off': 'Desactivar sonido',
+      dreams_count: '{count} sueño entregado | {count} sueños entregados',
+      stars_count: '{count} estrella atrapada | {count} estrellas atrapadas',
+      wishes_count: '{count} deseo añadido | {count} deseos añadidos',
+      page_indicator: 'Página {current} de {total}'
+    },
+    fr: {
+      nav_pip: 'Pip',
+      nav_work: 'Projets',
+      nav_story: 'Histoire',
+      nav_wall: 'Mur',
+      hero_title: 'Je construis les rêves dans lesquels vous vous endormez.',
+      hero_lede: 'Ingénieur de Rêves Junior à la Pouponnière de Minuit. Berceuses, veilleuses et livraisons sur les toits avant l’aube.',
+      hero_say_hi: 'Dis bonjour à Pip',
+      hero_see_work: 'Voir les créations de Pip',
+      hero_fine: 'Les yeux de Pip vous suivent. Basculez l’interrupteur soleil et lune pour voir.',
+      hero_greeting: 'Salut ! Je suis Pip.',
+      work_title: 'Choses faites par Pip',
+      work_desc: 'Cinq projets de l’établi de Minuit. Chacun est entièrement jouable.',
+      lab_desc: 'Une boîte à musique remontée à l’envers. Appuyez sur une touche ou les chiffres 1 à 8.',
+      lab_wind: 'Remonter la boîte',
+      lab_endless: 'Berceuse infinie',
+      lights_desc: 'Prenez une lanterne et éclairez la chambre. Cinq petits rêves y sont cachés.',
+      blocks_desc: 'Empilez les blocs aussi haut que l’heure du coucher. Touchez ou appuyez sur Espace.',
+      blocks_btn: 'Lâcher le bloc',
+      route_desc: 'Faites défiler pour faire voler Pip au-dessus des toits, ou cliquez sur le bouton.',
+      route_btn: 'Lancer le vol',
+      story_h1: 'Le hoquet',
+      story_p1: 'Personne ne sait d’où vient Pip. L’infirmière a trouvé un panier à linge, un bonnet deux fois trop grand et un gros hoquet. Dans le panier : Pip souriant à la lune.',
+      story_h2: 'Silence interdit',
+      story_p2: 'La Pouponnière avait une règle : chaque petit fantôme s’endort avec un son. Pip a vu le silence et a décidé d’y remédier.',
+      story_h3: 'La première berceuse',
+      story_p3: 'Pip a remonté une boîte poussiéreuse à l’envers. Cinq notes un peu bancales en sont sorties. Onze fantômes ont bâillé ensemble.',
+      story_h4: 'L’équipe de nuit',
+      story_p4: 'Désormais Pip est Ingénieur de Rêves : berceuses au labo, veilleuses sur l’étagère et rêves livrés par nuage. Laissez votre fenêtre entrouverte.',
+      wall_title: 'Le mur des souhaits',
+      wall_desc: 'Laissez un souhait à Pip. Pip les lit tous en bâillant.',
+      wall_name_label: 'Votre nom',
+      wall_wish_label: 'Votre souhait',
+      wall_submit: 'Épingler mon souhait',
+      wall_fine: 'Les souhaits sont conservés sur cet appareil uniquement.',
+      odo_title: 'Rêves livrés cette nuit',
+      odo_fine: 'Le compteur de Pip qui augmente pendant votre lecture.',
+      Day: 'Jour',
+      Night: 'Nuit',
+      'Sound on': 'Son activé',
+      'Sound off': 'Son désactivé',
+      'Turn sound on': 'Activer le son',
+      'Turn sound off': 'Couper le son',
+      dreams_count: '{count} rêve livré | {count} rêves livrés',
+      stars_count: '{count} étoile attrapée | {count} étoiles attrapées',
+      wishes_count: '{count} vœu ajouté | {count} vœux ajoutés',
+      page_indicator: 'Page {current} sur {total}'
+    },
+    ja: {
+      nav_pip: 'ピップ',
+      nav_work: '作品',
+      nav_story: '物語',
+      nav_wall: '願いの壁',
+      hero_title: 'あなたが眠りに落ちる夢を作っています。',
+      hero_lede: '真夜中の保育園の見習い夢エンジニア。夜明け前に届ける子守唄、常夜灯、そして屋根の上の配達。',
+      hero_say_hi: 'ピップにあいさつ',
+      hero_see_work: 'ピップの作品を見る',
+      hero_fine: 'ピップの瞳があなたを見つめます。太陽と月のスイッチを切り替えてみてください。',
+      hero_greeting: 'やあ！ぼくはピップだよ。',
+      work_title: 'ピップが作ったもの',
+      work_desc: '真夜中の作業台から生まれた5つのおもちゃ。すべて遊べます。',
+      lab_desc: 'ピップが逆に巻いてしまったオルゴール。キーを押すか、1〜8を押してね。',
+      lab_wind: 'オルゴールを巻く',
+      lab_endless: '終わらない子守唄',
+      lights_desc: 'ランタンを選んで暗い部屋を照らそう。5つの小さな夢が隠れているよ。',
+      blocks_desc: 'おやすみの時間まで高くブロックを積もう。タップまたはスペースキーで落とします。',
+      blocks_btn: 'ブロックを落とす',
+      route_desc: 'スクロールして屋根の上を飛ぶか、ボタンを押して眺めよう。',
+      route_btn: 'ルートを飛ぶ',
+      story_h1: 'しゃっくり',
+      story_p1: 'ピップがどこから来たのか誰も知りません。看護師が見つけたのは洗濯カゴ、大きすぎるナイトキャップ、そして大きなしゃっくりでした。カゴの中には月に笑いかけるピップがいました。',
+      story_h2: '静寂は禁止',
+      story_p2: '真夜中の保育園にはルールがありました。みんな何か音を聞きながら眠ること。ピップは静けさを問題だと考え、エンジニアリングすることにしました。',
+      story_h3: '最初の子守唄',
+      story_p3: 'ピップは古いオルゴールのネジを逆に回しました。流れた5つの音に、11人のおばけが一斉にあくびをしました。それ以来、夜更かしする者はいません。',
+      story_h4: '夜勤シフト',
+      story_p4: 'いまピップは見習い夢エンジニア。ラボの子守唄、棚のランタン、雲による夢の配達。今夜は窓を少し開けておいてね。',
+      wall_title: '願いの壁',
+      wall_desc: 'ピップに願いを残してね。あくびをしながら全部読んでいます。',
+      wall_name_label: 'お名前',
+      wall_wish_label: 'あなたの願い',
+      wall_submit: '願いをピン留めする',
+      wall_fine: '願いごとはこの端末にのみ保存されます。',
+      odo_title: '今夜届けられた夢',
+      odo_fine: 'あなたが読んでいる間にも増えていくピップの記録。',
+      Day: '昼',
+      Night: '夜',
+      'Sound on': 'サウンドON',
+      'Sound off': 'サウンドOFF',
+      'Turn sound on': 'サウンドを鳴らす',
+      'Turn sound off': 'サウンドを消す',
+      dreams_count: '{count}件の夢を配達 | {count}件の夢を配達',
+      stars_count: '{count}個の星をキャッチ | {count}個の星をキャッチ',
+      wishes_count: '{count}個の願いを追加 | {count}個の願いを追加',
+      page_indicator: '{total}ページ中{current}ページ'
     }
   };
+
+  var SUPPORTED = ['en', 'hi', 'es', 'fr', 'ja'];
 
   function getStore() {
     if (typeof window !== 'undefined' && window.PIP && window.PIP.store) {
@@ -320,9 +466,9 @@
       var raw = langs[i];
       if (typeof raw !== 'string') continue;
       var clean = raw.trim().toLowerCase();
-      if (TRANSLATIONS[clean]) return clean;
       var primary = clean.split(/[-_]/)[0];
-      if (TRANSLATIONS[primary]) return primary;
+      if (primary === 'hi' || clean === 'hi') return 'hi';
+      if (primary === 'en' || clean === 'en') return 'en';
     }
     return 'en';
   }
@@ -617,7 +763,8 @@
   }
 
   function toggle() {
-    apply(curLang === 'hi' ? 'en' : 'hi');
+    var nextIdx = (SUPPORTED.indexOf(curLang) + 1) % SUPPORTED.length;
+    apply(SUPPORTED[nextIdx]);
   }
 
   function init() {
@@ -643,6 +790,7 @@
     selectPlural: getPluralCategory,
     plural: plural,
     getLang: function () { return curLang; },
+    SUPPORTED: SUPPORTED,
     TRANSLATIONS: TRANSLATIONS
   };
 

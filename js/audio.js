@@ -235,11 +235,11 @@
       }
       if (beat % 8 === 0) note(BASS[(beat / 8) % 4], { dur: 3.2, gain: 0.13, type: 'triangle', bell: false });
       beat++;
-      endlessTimer = window.setTimeout(step, 480 + Math.random() * 180);
+      endlessTimer = setTimeout(step, 480 + Math.random() * 180);
     })();
     return true;
   }
-  function stopEndless() { window.clearTimeout(endlessTimer); endlessTimer = 0; }
+  function stopEndless() { clearTimeout(endlessTimer); endlessTimer = 0; }
   function isEndless() { return endlessTimer !== 0; }
 
   function emit() { listeners.forEach(function (fn) { fn(state); }); }
@@ -373,7 +373,7 @@
     (function loop() {
       if (!cricketsActive || !isOn()) return;
       chirpCricket();
-      cricketTimer = window.setTimeout(loop, 1800 + Math.random() * 1600);
+      cricketTimer = setTimeout(loop, 1800 + Math.random() * 1600);
     })();
     return true;
   }
@@ -381,7 +381,7 @@
   function stopCrickets() {
     cricketsActive = false;
     if (cricketTimer) {
-      window.clearTimeout(cricketTimer);
+      clearTimeout(cricketTimer);
       cricketTimer = 0;
     }
   }
@@ -478,6 +478,133 @@
     });
   }
 
+  /* =========================================================================
+     Bedtime Sleep Timer with Gradual Audio Fade-out
+     ========================================================================= */
+  var sleepTimerId = null;
+  var sleepTimerEndTime = 0;
+  var sleepTimerDurationSec = 0;
+  var sleepTimerInitialVolume = 0.7;
+
+  function stopSleepTimer() {
+    if (sleepTimerId) {
+      clearInterval(sleepTimerId);
+      sleepTimerId = null;
+    }
+    sleepTimerEndTime = 0;
+    sleepTimerDurationSec = 0;
+  }
+
+  function isSleepTimerActive() {
+    return sleepTimerId !== null && sleepTimerEndTime > Date.now();
+  }
+
+  function getSleepTimerRemaining() {
+    if (!sleepTimerId || !sleepTimerEndTime) return 0;
+    return Math.max(0, Math.ceil((sleepTimerEndTime - Date.now()) / 1000));
+  }
+
+  function getPIP() {
+    if (typeof window !== 'undefined' && window.PIP) return window.PIP;
+    if (typeof global !== 'undefined' && global.PIP) return global.PIP;
+    return PIP;
+  }
+
+  function setNightTheme() {
+    var p = getPIP();
+    var curStore = (p && p.store) || store;
+    if (curStore && curStore.set) {
+      curStore.set('theme', 'night');
+      curStore.set('themeMode', 'night');
+    }
+    var d = (typeof document !== 'undefined') ? document : ((typeof global !== 'undefined' && global.document) ? global.document : null);
+    if (d && d.documentElement) {
+      d.documentElement.setAttribute('data-theme', 'night');
+      d.documentElement.setAttribute('data-theme-mode', 'night');
+      var themeBtn = d.getElementById ? d.getElementById('themeBtn') : null;
+      var themeLabel = d.getElementById ? d.getElementById('themeLabel') : null;
+      if (themeLabel) themeLabel.textContent = 'Night';
+      if (themeBtn) {
+        themeBtn.setAttribute('aria-label', 'Night mode, switch to Auto mode');
+        if (themeBtn.classList) {
+          themeBtn.classList.remove('is-auto');
+          themeBtn.classList.add('is-night');
+        }
+      }
+    }
+    if (p && p.pip && typeof p.pip.setMood === 'function') {
+      p.pip.setMood('night');
+    }
+  }
+
+  function stopAll() {
+    stopSleepTimer();
+    stopEndless();
+    stopAmbient();
+    set('off');
+    var gainNode = master;
+    if (gainNode && ctx) {
+      try {
+        gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
+      } catch (e) {}
+    }
+  }
+
+  function startSleepTimer(minutes, onFinish) {
+    stopSleepTimer();
+    var mins = 15;
+    var cb = onFinish;
+    if (typeof minutes === 'number') {
+      mins = minutes;
+    } else if (typeof minutes === 'string') {
+      mins = parseFloat(minutes);
+      if (isNaN(mins) || mins <= 0) mins = 15;
+    } else if (minutes && typeof minutes === 'object') {
+      mins = typeof minutes.minutes === 'number' ? minutes.minutes : 15;
+      if (typeof minutes.onFinish === 'function') cb = minutes.onFinish;
+    }
+    if (isNaN(mins) || mins <= 0) mins = 15;
+
+    var totalSeconds = mins < 0.05 ? mins * 60 : Math.max(1, Math.round(mins * 60));
+    sleepTimerDurationSec = totalSeconds;
+    sleepTimerInitialVolume = currentVolume > 0 ? currentVolume : 0.7;
+    sleepTimerEndTime = Date.now() + totalSeconds * 1000;
+
+    var intervalMs = mins < 0.05 ? 50 : 250;
+    sleepTimerId = setInterval(function () {
+      var remainingMs = sleepTimerEndTime - Date.now();
+      var remainingSec = Math.max(0, remainingMs / 1000);
+
+      // During the final 60 seconds, decrement master gain exponentially towards zero using gainNode.gain.setValueAtTime()
+      if (remainingSec <= 60 && remainingSec > 0) {
+        var gainNode = master;
+        if (gainNode && ctx) {
+          try {
+            var factor = Math.max(0.0001, Math.pow(remainingSec / Math.min(60, totalSeconds), 2));
+            var targetGain = sleepTimerInitialVolume * factor;
+            gainNode.gain.setValueAtTime(targetGain, ctx.currentTime);
+          } catch (e) {}
+        }
+      }
+
+      if (remainingSec <= 0) {
+        stopSleepTimer();
+        stopAll();
+        setNightTheme();
+        var p = getPIP();
+        var showToast = (p && p.toast) || toast;
+        if (typeof showToast === 'function') {
+          showToast('Pip fell fast asleep. Sweet dreams!');
+        }
+        if (typeof cb === 'function') {
+          cb();
+        }
+      }
+    }, intervalMs);
+
+    return totalSeconds;
+  }
+
   // The speaker switch in the taskbar
   function toggle() {
     if (isOn()) { set('off'); return; }
@@ -538,6 +665,12 @@
     setReverbWet: setReverbWet,
     getReverbWet: getReverbWet,
     makeImpulse: makeImpulse,
+    stopAll: stopAll,
+    startSleepTimer: startSleepTimer,
+    stopSleepTimer: stopSleepTimer,
+    getSleepTimerRemaining: getSleepTimerRemaining,
+    isSleepTimerActive: isSleepTimerActive,
+    setNightTheme: setNightTheme,
     masterBus: {
       configureLimiter: configureLimiter,
       setReverbWet: setReverbWet,
@@ -566,7 +699,13 @@
       configureLimiter: configureLimiter,
       setReverbWet: setReverbWet,
       getReverbWet: getReverbWet,
-      makeImpulse: makeImpulse
+      makeImpulse: makeImpulse,
+      stopAll: stopAll,
+      startSleepTimer: startSleepTimer,
+      stopSleepTimer: stopSleepTimer,
+      getSleepTimerRemaining: getSleepTimerRemaining,
+      isSleepTimerActive: isSleepTimerActive,
+      setNightTheme: setNightTheme
     };
   }
 })();

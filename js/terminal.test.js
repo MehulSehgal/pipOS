@@ -303,3 +303,48 @@ test('initTerminal handles Tab and Shift-Tab cycling in-place and updates cursor
     delete global.document;
   }
 });
+
+test('terminal piping executes chained commands (|) and stream redirection (> and >>)', () => {
+  const term = require(TERM_JS_PATH);
+  const vfs = require('./vfs.js');
+  global.PIP = global.PIP || {};
+  global.PIP.fs = vfs;
+
+  // 1. Simple piping: echo -> wc
+  const wcRes = term.executeCommand('echo starlight dreams | wc -w');
+  assert.strictEqual(wcRes.ok, true);
+  assert.strictEqual(wcRes.output.trim(), '2');
+
+  // 2. Piping with grep
+  const grepRes = term.executeCommand('echo "apples\\nbananas\\noranges" | grep ban');
+  assert.strictEqual(grepRes.ok, true);
+  assert.strictEqual(grepRes.output.trim(), 'bananas');
+
+  // 3. Multi-stage pipeline: echo -> grep -> sort
+  const multiRes = term.executeCommand('echo "zebra\\napple\\nbear\\nant" | grep -v zebra | sort');
+  assert.strictEqual(multiRes.ok, true);
+  assert.strictEqual(multiRes.output.trim(), 'ant\napple\nbear');
+
+  // 4. Overwrite redirection (>): write stdout to PipFS file
+  const redirRes = term.executeCommand('echo "midnight whispers" > /home/pip/test_pipes.txt');
+  assert.strictEqual(redirRes.ok, true);
+  assert.strictEqual(vfs.readFile('/home/pip/test_pipes.txt'), 'midnight whispers');
+
+  // 5. Append redirection (>>): append line to PipFS file
+  const appendRes = term.executeCommand('echo "sleep tight" >> /home/pip/test_pipes.txt');
+  assert.strictEqual(appendRes.ok, true);
+  assert.strictEqual(vfs.readFile('/home/pip/test_pipes.txt'), 'midnight whispers\nsleep tight');
+
+  // 6. Pipe into cat and head
+  const headRes = term.executeCommand('cat /home/pip/test_pipes.txt | head -n 1');
+  assert.strictEqual(headRes.ok, true);
+  assert.strictEqual(headRes.output.trim(), 'midnight whispers');
+
+  // 7. Pipe into tail
+  const tailRes = term.executeCommand('cat /home/pip/test_pipes.txt | tail -n 1');
+  assert.strictEqual(tailRes.ok, true);
+  assert.strictEqual(tailRes.output.trim(), 'sleep tight');
+
+  // Clean up
+  vfs.unlink('/home/pip/test_pipes.txt');
+});
